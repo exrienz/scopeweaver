@@ -105,3 +105,54 @@ func TestLegacySSEClientDiscoverAndCall(t *testing.T) {
 		t.Fatalf("Call() = %q, %v", got, err)
 	}
 }
+
+// applyHeaders must route a configured Host override through req.Host — Go's
+// http client ignores Header["Host"], and servers that validate the Host header
+// (e.g. rejecting host.docker.internal) need the override to reach the wire.
+func TestApplyHeadersHostOverride(t *testing.T) {
+	tests := []struct {
+		name      string
+		headers   map[string]string
+		wantHost  string
+		wantOther string
+	}{
+		{
+			name:      "host override",
+			headers:   map[string]string{"Host": "0.0.0.0:9876", "Authorization": "Bearer t"},
+			wantHost:  "0.0.0.0:9876",
+			wantOther: "Bearer t",
+		},
+		{
+			name:      "case-insensitive host key",
+			headers:   map[string]string{"HOST": "localhost:9876"},
+			wantHost:  "localhost:9876",
+			wantOther: "",
+		},
+		{
+			name:      "no host key keeps url host",
+			headers:   map[string]string{"Authorization": "Bearer t"},
+			wantHost:  "example.test:1234",
+			wantOther: "Bearer t",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, "http://example.test:1234/sse", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			applyHeaders(req, tt.headers)
+			if req.Host != tt.wantHost {
+				t.Errorf("req.Host = %q, want %q", req.Host, tt.wantHost)
+			}
+			// Go stores Host on req.Host, never in the Header map — the override
+			// must not leak into Header.
+			if got := req.Header.Get("Host"); got != "" {
+				t.Errorf("Header unexpectedly carries Host %q", got)
+			}
+			if got := req.Header.Get("Authorization"); got != tt.wantOther {
+				t.Errorf("Header[Authorization] = %q, want %q", got, tt.wantOther)
+			}
+		})
+	}
+}
