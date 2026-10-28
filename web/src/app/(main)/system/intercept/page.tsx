@@ -291,10 +291,10 @@ function JudgeCard() {
           <div>
             <p className="text-sm font-semibold leading-tight">{swt("interface.m1206")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {swt("interface.m1207")}{swLocale === "en" && " "}
-              <span className="font-medium text-foreground">{swt("interface.m1208")}</span>{swLocale === "en" && " "}
-              {swt("interface.m1209")}{swLocale === "en" && " "}
-              <span className="font-medium text-foreground">{swt("interface.m1210")}</span>{swLocale === "en" && " "}
+              {swt("interface.m1207")}{(swLocale === "en" || swLocale === "es") && " "}
+              <span className="font-medium text-foreground">{swt("interface.m1208")}</span>{(swLocale === "en" || swLocale === "es") && " "}
+              {swt("interface.m1209")}{(swLocale === "en" || swLocale === "es") && " "}
+              <span className="font-medium text-foreground">{swt("interface.m1210")}</span>{(swLocale === "en" || swLocale === "es") && " "}
               {swt("interface.m1211")}</p>
           </div>
         </div>

@@ -237,6 +237,37 @@ samp {
   flex: none;
   white-space: nowrap;
 }
+.lang-switch.language-menu {
+  position: relative;
+  display: block;
+  overflow: visible;
+}
+.language-menu summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0.75rem 0.66rem;
+  line-height: 1.4;
+}
+.language-menu .language-options {
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  display: grid;
+  min-width: 9rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 6px 18px #00000014;
+}
+.language-menu .language-options > * {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.language-menu:not([open]) .language-options { display: none; }
+.language-menu .language-options a:hover { background: var(--surface-sunk); }
 .brand:hover {
   color: var(--ink);
 }

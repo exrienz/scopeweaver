@@ -89,8 +89,8 @@ func TestAllProductionPackagesHaveRawShippedTranslations(t *testing.T) {
 		}
 		production = append(production, key)
 	}
-	if len(production) != 1983 {
-		t.Fatalf("production key count %d, want 1983 (1982 previous + host scope error)", len(production))
+	if len(production) != 2043 {
+		t.Fatalf("production key count %d, want 2043 (1983 previous + 4 add_intent item schema fields and planner evidence header + 56 OpenCode SDK diagnostics)", len(production))
 	}
 	if err := locale.ValidateTextTranslations(production); err != nil {
 		t.Fatal(err)
@@ -121,9 +121,11 @@ func TestChineseLocaleMiddlewarePrecedenceAndFallback(t *testing.T) {
 		writeError(w, 400, locale.Errorf("language must be one of %s", locale.SupportedLanguageNames()))
 	}))
 	for _, tc := range []struct{ query, header, cookie, want string }{
-		{"zh-Hans", "ko", "en", "zh-Hans"}, {"", "zh-Hant;q=1,zh-CN;q=0.7,ko;q=0.2", "en", "zh-Hans"},
-		{"zh-TW", "ko;q=0,zh-SG;q=0.6", "en", "zh-Hans"}, {"", "zh-Hant-CN", "zh-Hans", "zh-Hans"},
-		{"zh-Hant", "zh-HK", "zh-Hant", "en"},
+		{"zh-Hans", "ko", "en", "zh-Hans"}, {"", "zh-Hant;q=1,zh-CN;q=0.7,ko;q=0.2", "en", "zh-Hant"},
+		{"zh-TW", "ko;q=0,zh-SG;q=0.6", "en", "zh-Hant"}, {"", "zh-Hant-CN", "zh-Hans", "zh-Hant"},
+		{"zh-Hant", "zh-HK", "zh-Hant", "zh-Hant"},
+		{"ja-JP", "es", "ko", "ja"}, {"unsupported", "es-AR;q=1,ko;q=0.5", "ja", "es"},
+		{"unsupported", "fr", "ja-JP", "ja"}, {"unsupported", "fr", "unsupported", "en"},
 	} {
 		r := httptest.NewRequest("GET", "/api/settings?lang="+tc.query, nil)
 		r.Header.Set("Accept-Language", tc.header)
@@ -133,7 +135,7 @@ func TestChineseLocaleMiddlewarePrecedenceAndFallback(t *testing.T) {
 		if w.Header().Get("Content-Language") != tc.want {
 			t.Fatalf("wrong negotiated language: %s", w.Header().Get("Content-Language"))
 		}
-		if !strings.Contains(w.Body.String(), "en, ko, zh-Hans") {
+		if !strings.Contains(w.Body.String(), locale.SupportedLanguageNames()) {
 			t.Fatalf("canonical identifiers altered: %s", w.Body)
 		}
 		if tc.want == "zh-Hans" && !strings.Contains(w.Body.String(), "语言必须") {

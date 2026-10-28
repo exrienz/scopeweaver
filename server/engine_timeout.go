@@ -46,12 +46,12 @@ func (e *Engine) inflightCounter(taskID string) *int64 {
 }
 
 // beginTaskOperation atomically registers a task-owned operation unless deletion
-// has already installed its barrier. The delete handler can therefore wait for
+// or shutdown has already installed its barrier. The delete handler can therefore wait for
 // inflight==0 without a check-then-start race recreating files after cleanup.
 func (e *Engine) beginTaskOperation(taskID string) bool {
 	e.deleteMu.RLock()
 	defer e.deleteMu.RUnlock()
-	if e.IsDeleting(taskID) {
+	if e.closing || e.IsDeleting(taskID) {
 		return false
 	}
 	atomic.AddInt64(e.inflightCounter(taskID), 1)
@@ -134,7 +134,7 @@ func (e *Engine) startDeadlineCoordinator(ctx context.Context, t *Task) {
 		return
 	}
 	e.deleteMu.RLock()
-	if e.IsDeleting(t.ID) {
+	if e.closing || e.IsDeleting(t.ID) {
 		e.deleteMu.RUnlock()
 		return
 	}

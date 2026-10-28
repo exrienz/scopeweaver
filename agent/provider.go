@@ -10,6 +10,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Autumn-27/artex/locale"
 	"io"
@@ -24,6 +25,7 @@ import (
 	"github.com/Autumn-27/artex/llmnet"
 	"github.com/Autumn-27/artex/llmrec"
 	"github.com/Autumn-27/artex/ollama"
+	"github.com/Autumn-27/artex/opencodesdk"
 	"github.com/Autumn-27/norma/agentcore"
 	"github.com/Autumn-27/norma/compaction"
 	"github.com/Autumn-27/norma/llm"
@@ -115,7 +117,7 @@ type RetryConfig struct {
 // threshold math (window − summary reserve − buffer) would go non-positive and
 // compaction would fire every turn; above the cap it would never fire.
 const (
-	defaultWindowK = 200  // unset → assume a 200K window (Claude default)
+	defaultWindowK = 200  // conservative fallback when the profile leaves its window unset
 	minWindowK     = 32   // floor so effectiveWindow stays comfortably positive
 	maxWindowK     = 1000 // cap at 1M tokens (user request)
 )
@@ -185,7 +187,9 @@ func FromEnv() (Config, bool) {
 	// Native Ollama never falls back to a cloud credential.
 	_, explicitKey := runtimeconfig.LLMEnv("API_KEY")
 	if c.APIKey == "" && !explicitKey {
-		if prov == "opencode-go" {
+		if prov == opencodesdk.Format {
+			c.APIKey = os.Getenv("SCOPEWEAVER_OPENCODE_TOKEN")
+		} else if prov == "opencode-go" {
 			// The wire format resolved to "openai", but the credential is the
 			// OpenCode subscription key — never OPENAI_API_KEY.
 			c.APIKey = os.Getenv("OPENCODE_API_KEY")
@@ -232,6 +236,11 @@ func ConfigFrom(provider, model, baseURL, apiKey, proxy string) Config {
 		Stream:  true, // Streaming defaults on; callers override from the profile.
 	}
 	switch strings.TrimSpace(provider) {
+	case opencodesdk.Format:
+		c.Format = llm.Format(opencodesdk.Format)
+		if c.BaseURL == "" {
+			c.BaseURL = opencodesdk.DefaultBaseURL
+		}
 	case "ollama":
 		c.Format = llm.Format("ollama")
 		c.BaseURL = ollama.NormalizeBaseURL(c.BaseURL)
@@ -297,6 +306,8 @@ func isFalsy(s string) bool {
 // Provider returns the short provider name ("anthropic"/"openai").
 func (c Config) Provider() string {
 	switch c.Format {
+	case llm.Format(opencodesdk.Format):
+		return opencodesdk.Format
 	case llm.Format("ollama"):
 		return "ollama"
 	case llm.FormatOpenAI:
@@ -314,6 +325,23 @@ func (c Config) NewProvider() (llm.Provider, error) {
 	client, err := c.HTTPClient()
 	if err != nil {
 		return nil, err
+	}
+	if c.Provider() == opencodesdk.Format {
+		if !opencodesdk.ValidModel(c.Model) {
+			return nil, locale.NewError("OpenCode SDK model must be providerID/modelID")
+		}
+		policy := func() bool {
+			if c.PolicyResolver != nil {
+				strict, _ := c.PolicyResolver()
+				return strict
+			}
+			return c.LocalLLMOnly
+		}
+		p, err := opencodesdk.New(c.BaseURL, c.APIKey, c.Model, opencodesdk.Options{Client: client, LocalOnly: policy, ThinkingType: c.ThinkingType, ReasoningEffort: c.ReasoningEffort})
+		if err != nil {
+			return nil, err
+		}
+		return llm.RateLimited(p, llm.RateLimit{PerSecond: c.RatePerSecond, PerMinute: c.RatePerMinute}), nil
 	}
 	if c.Provider() == "ollama" {
 		native, err := ollama.NewClient(c.BaseURL, c.APIKey, client)
@@ -364,6 +392,18 @@ func (c Config) NewProvider() (llm.Provider, error) {
 		return glm53Provider{Provider: provider}, nil
 	}
 	return provider, nil
+}
+
+// IsQuotaExhaustedError trusts structured SDK evidence and preserves other providers' existing message rules.
+func IsQuotaExhaustedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var bridge *opencodesdk.BridgeError
+	if errors.As(err, &bridge) {
+		return bridge.QuotaExhausted()
+	}
+	return IsQuotaExhaustedMessage(err.Error())
 }
 
 // IsQuotaExhaustedMessage deliberately recognizes only explicit balance,
@@ -417,6 +457,7 @@ type quotaAwareTransport struct {
 	// carries; its value is the session id read from the request context. Empty
 	// disables it. See Config.SessionHeaderKey.
 	sessionHeaderKey string
+	preserveStatus   bool
 }
 
 func (t quotaAwareTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -471,7 +512,7 @@ func (t quotaAwareTransport) RoundTrip(req *http.Request) (*http.Response, error
 		}}
 	}
 
-	if resp.StatusCode != http.StatusTooManyRequests {
+	if resp.StatusCode != http.StatusTooManyRequests || t.preserveStatus {
 		return resp, nil
 	}
 	body, readErr := io.ReadAll(resp.Body)
@@ -509,6 +550,9 @@ func requestBodySnapshot(req *http.Request) string {
 
 // Ready allows keyless native Ollama and explicit local compatible servers.
 func (c Config) Ready() bool {
+	if c.Provider() == opencodesdk.Format {
+		return strings.TrimSpace(c.APIKey) != ""
+	}
 	return c.APIKey != "" || c.Provider() == "ollama" || llmnet.IsLocalEndpoint(c.BaseURL)
 }
 
@@ -516,7 +560,13 @@ func (c Config) Ready() bool {
 func (c Config) HTTPClient() (*http.Client, error) {
 	var client *http.Client
 	var err error
-	if c.PolicyResolver != nil {
+	if c.Provider() == opencodesdk.Format {
+		if c.Proxy != "" {
+			return nil, locale.NewError("OpenCode SDK bridge proxy settings are not allowed")
+		}
+		// Pin bridge sockets to loopback even if localhost DNS changes; downstream policy is checked separately.
+		client, err = llmnet.NewClient("", true, nil)
+	} else if c.PolicyResolver != nil {
 		client, err = llmnet.NewClientWithPolicy(c.Proxy, c.PolicyResolver)
 	} else {
 		client, err = llmnet.NewClient(c.Proxy, c.LocalLLMOnly, c.LocalLLMAllowedCIDRs)
@@ -528,7 +578,7 @@ func (c Config) HTTPClient() (*http.Client, error) {
 	if c.officialClaude55() {
 		replay = &claudeReplay{}
 	}
-	client.Transport = quotaAwareTransport{base: client.Transport, sessionHeaderKey: strings.TrimSpace(c.SessionHeaderKey), claude: replay}
+	client.Transport = quotaAwareTransport{base: client.Transport, sessionHeaderKey: strings.TrimSpace(c.SessionHeaderKey), claude: replay, preserveStatus: c.Provider() == opencodesdk.Format}
 	return client, nil
 }
 
@@ -595,12 +645,16 @@ func TestConnection(ctx context.Context, c Config) (time.Duration, string, error
 	// yielding finish=length and confusing interruption/resume indications despite
 	// transport success. A sufficient budget lets the model emit OK and stop cleanly.
 	// Keep EscalateMaxTokens false to avoid wasteful retry/resume loops after truncation.
+	maxTokens := 8192
+	if c.Provider() == opencodesdk.Format && c.MaxTokens > 0 {
+		maxTokens = c.MaxTokens
+	}
 	reply, err := agentcore.Run(ctx, agentcore.Options{
 		Provider:       prov,
 		SystemPrompt:   []string{locale.Text(locale.FromContext(ctx), "This is a connection test. Output exactly the two characters OK, with no reasoning, explanation, or other content.")},
 		PermissionMode: acperm.ModeBypass,
 		MaxTurns:       1,
-		MaxTokens:      8192,
+		MaxTokens:      maxTokens,
 		NonStreaming:   !c.Stream, // Test using this profile's actual streaming/non-streaming mode.
 	}, "ping")
 	lat := time.Since(start)

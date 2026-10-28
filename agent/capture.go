@@ -26,16 +26,16 @@ import (
 // KindText/KindThinking arrive as streaming deltas (one event per fragment); a
 // contiguous run is coalesced into a single record so the trace shows whole
 // messages, not dozens of fragments.
-func captureRun(ctx context.Context, opts agentcore.Options, input string, emit func(db.Activity)) (string, harness.TerminalReason, error) {
-	s := agentcore.NewSession(opts)
+func captureRun(ctx context.Context, opts agentcore.Options, input string, emit func(db.Activity), observe ...func(harness.Event)) (string, harness.TerminalReason, error) {
+	s := newOwnedSession(ctx, opts)
 	defer s.Close() // release the session's background-task manager (temp dir + processes)
-	return captureRunSession(ctx, s, input, emit)
+	return captureRunSession(ctx, s, input, emit, observe...)
 }
 
 // captureRunSession is captureRun over an existing session, so a caller can run
 // multiple prompts on the SAME conversation (e.g. a settlement round that reuses
 // the worker's accumulated context after the main run hit max_turns).
-func captureRunSession(ctx context.Context, s *agentcore.Session, input string, emit func(db.Activity)) (string, harness.TerminalReason, error) {
+func captureRunSession(ctx context.Context, s *agentcore.Session, input string, emit func(db.Activity), observe ...func(harness.Event)) (string, harness.TerminalReason, error) {
 	ctx = intercept.WithProviderOrigin(ctx)
 	ctx, auditTrace := intercept.WithTrace(ctx, input, approvalHistory(s.Messages()))
 	defer auditTrace.Finish()
@@ -90,6 +90,13 @@ func captureRunSession(ctx context.Context, s *agentcore.Session, input string, 
 			}
 			rec(activityWithUsage(db.Activity{Kind: "result", IsError: true, Summary: locale.Text(locale.FromContext(ctx), "Execution failed: ") + err.Error(), Detail: err.Error()}, lastUsage))
 			return finalText, reason, err
+		}
+		// Observe the SDK receipt synchronously before the harness can advance
+		// to its next compaction/model call. Existing activity capture is intact.
+		for _, observer := range observe {
+			if observer != nil {
+				observer(ev)
+			}
 		}
 		switch ev.Kind {
 		case harness.KindToolUse:

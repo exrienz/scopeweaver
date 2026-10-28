@@ -14,6 +14,7 @@ export const LLM_PROFILE_PRESET_IDS = [
   "kimi",
   "openrouter",
   "opencode-go",
+  "opencode-sdk",
   "ollama-host",
   "ollama-docker-host",
   "ollama-compose",
@@ -70,7 +71,21 @@ export interface OllamaPresetFields {
   session_header_key?: string;
 }
 
-export type LLMProfilePresetFields = ZaiPresetFields | CloudPresetFields | OllamaPresetFields;
+export interface OpenCodeSDKPresetFields {
+  format: "opencode-sdk";
+  model: "";
+  base_url: string;
+  api_key: "";
+  proxy: "";
+  session_header_key: "";
+  streaming: true;
+  thinking_type: "";
+  reasoning_effort: "";
+  context_window_k: number;
+  max_tokens: number;
+  max_tokens_field: "";
+}
+export type LLMProfilePresetFields = ZaiPresetFields | CloudPresetFields | OllamaPresetFields | OpenCodeSDKPresetFields;
 
 const OLLAMA_TARGETS: Record<string, { base_url: string }> = {
   "ollama-host": { base_url: "http://127.0.0.1:11434" },
@@ -110,6 +125,12 @@ export function getLLMProfilePreset(id: string): Readonly<LLMProfilePresetFields
   if (!(LLM_PROFILE_PRESET_IDS as readonly string[]).includes(id)) {
     throw new RangeError(`Unknown LLM profile preset: ${id}`);
   }
+  if (id === "opencode-sdk") {
+    return {
+      format: "opencode-sdk", base_url: "http://127.0.0.1:4097", model: "", api_key: "", proxy: "", session_header_key: "", streaming: true,
+      thinking_type: "", reasoning_effort: "", context_window_k: 0, max_tokens: 0, max_tokens_field: "",
+    };
+  }
   if (isOllamaPreset(id)) {
     return {
       format: "ollama",
@@ -143,11 +164,43 @@ export function getLLMProfilePreset(id: string): Readonly<LLMProfilePresetFields
   };
 }
 
-// Unknown fields, including profile names, proxies and session headers, survive unchanged.
-// Cloud templates (GLM and economy) also keep entered credentials; Ollama templates clear them (see api_key above).
+// Fields not defined by a template survive unchanged.
+// Cloud templates keep entered credentials; Ollama and SDK templates clear them.
+// The SDK bridge also clears unsupported proxy/session headers and enables native streaming.
 // The original draft is not mutated, and no request or persistence occurs here.
 export function applyLLMProfilePreset<T extends object>(draft: T, id: string): T & LLMProfilePresetFields {
-  return { ...draft, ...getLLMProfilePreset(id) };
+  const preset = getLLMProfilePreset(id);
+  if ("format" in draft && draft.format === "opencode-sdk" && preset.format !== "opencode-sdk") {
+    return { ...draft, ...preset, api_key: "" };
+  }
+  return { ...draft, ...preset };
+}
+
+// A saved bridge token belongs only to that SDK endpoint, never to another format or host alias.
+export function canReuseSDKBridgeToken(
+  profile: { format: string; base_url?: string } | null | undefined,
+  format: string,
+  baseUrl: string,
+): boolean {
+  if (profile?.format !== "opencode-sdk" || format !== "opencode-sdk") return false;
+  const endpoint = (value: string) => {
+    const raw = value.trim() || "http://127.0.0.1:4097";
+    const parts = /^https?:\/\/(\[[^\]]+\]|[^/:?#]+)(?::\d+)?(\/[^?#]*)?$/.exec(raw);
+    if (!parts || raw.includes("\\")) return "";
+    const url = new URL(raw);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) return "";
+    const host = parts[1].toLowerCase();
+    if (!host.startsWith("[") && host !== url.hostname) return "";
+    if (url.hostname !== "localhost" && url.hostname !== "[::1]" && !/^127\./.test(url.hostname)) return "";
+    // Preserve path identity: the Go endpoint normalizer does not resolve dot segments.
+    return url.origin + (parts[2] ?? "").replace(/\/+$/, "");
+  };
+  try {
+    const previous = endpoint(profile.base_url ?? "");
+    return previous !== "" && previous === endpoint(baseUrl);
+  } catch {
+    return false;
+  }
 }
 
 // Choose only from the installed list, preferring confirmed native tool support.

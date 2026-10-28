@@ -1,6 +1,6 @@
 # `/btw` verification record
 
-[한국어](../docs/ko/sidequestion/VALIDATION.md)
+English · [한국어](../docs/ko/sidequestion/VALIDATION.md) · [简体中文](../docs/zh-Hans/sidequestion/VALIDATION.md) · [繁體中文](../docs/zh-Hant/sidequestion/VALIDATION.md) · [日本語](../docs/ja/sidequestion/VALIDATION.md) · [Español](../docs/es/sidequestion/VALIDATION.md)
 
 Historical upstream record. Date: 2026-09-10. Branch: `codex/btw-side-question`. Baseline: `8dae851b9b622f2ff2631f332fde9719d0b16fba`. These are not new ScopeWeaver results.
 

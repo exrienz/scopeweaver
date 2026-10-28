@@ -1,6 +1,6 @@
 # 저장소 관리
 
-[English](../../../../../skills/playwright-cli/references/storage-state.md)
+[English](../../../../../skills/playwright-cli/references/storage-state.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/storage-state.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/storage-state.md) · [日本語](../../../../ja/skills/playwright-cli/references/storage-state.md) · [Español](../../../../es/skills/playwright-cli/references/storage-state.md)
 
 cookie, localStorage, sessionStorage와 브라우저 저장소 상태를 관리합니다.
 

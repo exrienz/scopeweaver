@@ -1,6 +1,6 @@
 # Playwright 테스트 실행
 
-[English](../../../../../skills/playwright-cli/references/playwright-tests.md)
+[English](../../../../../skills/playwright-cli/references/playwright-tests.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/playwright-tests.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/playwright-tests.md) · [日本語](../../../../ja/skills/playwright-cli/references/playwright-tests.md) · [Español](../../../../es/skills/playwright-cli/references/playwright-tests.md)
 
 `npx playwright test` 또는 패키지 관리자 스크립트로 테스트합니다. 대화형 HTML 보고서가 열리지 않게 하려면 `PLAYWRIGHT_HTML_OPEN=never`를 설정합니다.
 

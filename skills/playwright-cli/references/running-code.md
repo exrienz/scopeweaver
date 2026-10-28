@@ -1,5 +1,7 @@
 # Running Custom Playwright Code
 
+English · [한국어](../../../docs/ko/skills/playwright-cli/references/running-code.md) · [简体中文](../../../docs/zh-Hans/skills/playwright-cli/references/running-code.md) · [繁體中文](../../../docs/zh-Hant/skills/playwright-cli/references/running-code.md) · [日本語](../../../docs/ja/skills/playwright-cli/references/running-code.md) · [Español](../../../docs/es/skills/playwright-cli/references/running-code.md)
+
 Use `run-code` to execute arbitrary Playwright code for advanced scenarios not covered by CLI commands.
 
 ## Syntax

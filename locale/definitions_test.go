@@ -34,9 +34,9 @@ func TestSharedMatchingVectors(t *testing.T) {
 	}
 }
 
-func TestDefinitionDrivenNewLanguages(t *testing.T) {
-	defs := append(Definitions(), Definition{ID: "ja", Aliases: []string{"ja", "ja-JP"}}, Definition{ID: "zh-Hant", Aliases: []string{"zh-Hant", "zh-TW", "zh-HK", "zh-MO"}})
-	for input, want := range map[string]Lang{"ja-jp": "ja", "ja-us": "ja", "zh-hant-cn": "zh-Hant", "zh-tw": "zh-Hant", "zh-hans-tw": ZhHans} {
+func TestDefinitionDrivenAdditionalLanguages(t *testing.T) {
+	defs := append(Definitions(), Definition{ID: "pt", Aliases: []string{"pt", "pt-BR"}})
+	for input, want := range map[string]Lang{"pt-br": "pt", "pt-pt": "pt", "zh-hant-cn": "zh-Hant", "zh-tw": "zh-Hant", "zh-hans-tw": ZhHans} {
 		got, ok := matchDefinitions(input, strings.Split(input, "-"), defs)
 		if !ok || got != want {
 			t.Errorf("definition-driven match %s = (%s,%v), want %s", input, got, ok, want)
@@ -57,7 +57,7 @@ func TestDefinitionDrivenNewLanguages(t *testing.T) {
 func TestRegisterAllRetainsAdditionalLanguagesAndMerges(t *testing.T) {
 	const key = "test.keyed"
 	defer delete(catalog, key)
-	RegisterAll(map[string]map[Lang]string{key: {En: "Hello %s", Ko: "안녕 %s", ZhHans: "你好 %s", "ja": "こんにちは %s"}})
+	RegisterAll(map[string]map[Lang]string{key: {En: "Hello %s", Ko: "안녕 %s", ZhHans: "你好 %s", ZhHant: "您好 %s", Ja: "こんにちは %s", Es: "Hola %s", "pt": "Olá %s"}})
 	Register(key, "Hi %s", "")
 	RegisterAll(map[string]map[Lang]string{key: {Ko: ""}})
 	if got, _ := Raw(Ko, key); got != "안녕 %s" {

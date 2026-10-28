@@ -1,5 +1,7 @@
 # Browser Session Management
 
+English · [한국어](../../../docs/ko/skills/playwright-cli/references/session-management.md) · [简体中文](../../../docs/zh-Hans/skills/playwright-cli/references/session-management.md) · [繁體中文](../../../docs/zh-Hant/skills/playwright-cli/references/session-management.md) · [日本語](../../../docs/ja/skills/playwright-cli/references/session-management.md) · [Español](../../../docs/es/skills/playwright-cli/references/session-management.md)
+
 Run multiple isolated browser sessions concurrently with state persistence.
 
 ## Named Browser Sessions

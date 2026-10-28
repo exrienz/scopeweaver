@@ -41,9 +41,17 @@ type Compactor struct {
 	cooldown time.Duration // min gap between compactions per task (§7 60s)
 	maxDur   time.Duration // hard cap on one background compaction
 
-	mu      sync.Mutex
-	running map[int64]bool
-	lastRun map[int64]time.Time
+	mu       sync.Mutex
+	running  map[int64]bool
+	lastRun  map[int64]time.Time
+	shutdown context.Context
+	start    func(func()) bool
+}
+
+// SetBackgroundRunner attaches server shutdown and ownership before the first
+// planner round. Planner cancellation alone still leaves compaction independent.
+func (c *Compactor) SetBackgroundRunner(shutdown context.Context, start func(func()) bool) {
+	c.shutdown, c.start = shutdown, start
 }
 
 // NewCompactor builds a compactor. prov/model are used for the §4 body LLM call
@@ -83,10 +91,17 @@ func (c *Compactor) OnPlannerRound(ctx context.Context, ts *db.ExplorationStore)
 	if !c.tryStart(ts.ID()) {
 		return // Already running or cooling down; derived state converges on a later compaction.
 	}
-	go func() {
+	run := func() {
 		defer c.finish(ts.ID())
 		bg, cancel := context.WithTimeout(context.WithoutCancel(ctx), c.maxDur)
 		defer cancel()
+		if c.shutdown != nil {
+			stop := context.AfterFunc(c.shutdown, cancel)
+			defer stop()
+			if c.shutdown.Err() != nil {
+				cancel()
+			}
+		}
 		// Compaction calls prov.Complete directly, outside the agentcore session loop,
 		// so ctx lacks a session ID. Gateways using session headers for prompt caching
 		// or sticky routing would miss it (opencode zen returns 400 without x-opencode-session).
@@ -98,7 +113,14 @@ func (c *Compactor) OnPlannerRound(ctx context.Context, ts *db.ExplorationStore)
 		} else {
 			c.minor(bg, ts)
 		}
-	}()
+	}
+	if c.start != nil {
+		if !c.start(run) {
+			c.finish(ts.ID())
+		}
+	} else {
+		go run()
+	}
 	_ = round
 }
 
@@ -147,6 +169,9 @@ func (c *Compactor) maintain(ts *db.ExplorationStore) (round int64, uncompressed
 // minor folds the not-yet-covered eligible-cold set into new digest segments
 // (tiered append, §5). Existing digests are untouched.
 func (c *Compactor) minor(ctx context.Context, ts *db.ExplorationStore) {
+	if ctx.Err() != nil {
+		return
+	}
 	round, err := ts.RoundNo()
 	if err != nil {
 		return
@@ -194,6 +219,9 @@ func (c *Compactor) minor(ctx context.Context, ts *db.ExplorationStore) {
 // new/changed blocks are compressed afresh. This is where tiered fragments of one
 // direction merge and where "later became connected" blocks unify (§5.2).
 func (c *Compactor) major(ctx context.Context, ts *db.ExplorationStore) {
+	if ctx.Err() != nil {
+		return
+	}
 	round, err := ts.RoundNo()
 	if err != nil {
 		return
@@ -242,6 +270,9 @@ func (c *Compactor) major(ctx context.Context, ts *db.ExplorationStore) {
 			stale = append(stale, d.ID)
 		}
 	}
+	if ctx.Err() != nil {
+		return
+	}
 	if err := ts.SupersedeDigests(stale); err != nil {
 		log.Printf("[compaction] supersede exp=%d: %v", ts.ID(), err)
 	}
@@ -255,9 +286,15 @@ func (c *Compactor) major(ctx context.Context, ts *db.ExplorationStore) {
 // changed, so any member that has since gone hot (revived) is dropped from the
 // covers set. If the block dissolves below K it is skipped.
 func (c *Compactor) foldBlock(ctx context.Context, ts *db.ExplorationStore, g *coldGraph, b block, nodeByID map[int64]*db.Node, cvers map[int64]int, generation int) {
+	if ctx.Err() != nil {
+		return
+	}
 	body, err := c.compress(ctx, g, b, nodeByID)
 	if err != nil {
 		log.Printf("[compaction] compress exp=%d block=%v: %v", ts.ID(), b.Members, err)
+		return
+	}
+	if ctx.Err() != nil {
 		return
 	}
 	// Re-read fresh state and drop any member that revived while we compressed.

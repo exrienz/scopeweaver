@@ -1,5 +1,7 @@
 # Video Recording
 
+English · [한국어](../../../docs/ko/skills/playwright-cli/references/video-recording.md) · [简体中文](../../../docs/zh-Hans/skills/playwright-cli/references/video-recording.md) · [繁體中文](../../../docs/zh-Hant/skills/playwright-cli/references/video-recording.md) · [日本語](../../../docs/ja/skills/playwright-cli/references/video-recording.md) · [Español](../../../docs/es/skills/playwright-cli/references/video-recording.md)
+
 Capture browser automation sessions as video for debugging, documentation, or verification. Produces WebM (VP8/VP9 codec).
 
 ## Basic Recording

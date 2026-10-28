@@ -1,8 +1,66 @@
 {
   "default": "en",
   "locales": [
-    {"id": "en", "nativeName": "English", "intlLocale": "en-US", "aliases": ["en", "en-US", "en-GB"]},
-    {"id": "ko", "nativeName": "한국어", "intlLocale": "ko-KR", "aliases": ["ko", "ko-KR"]},
-    {"id": "zh-Hans", "nativeName": "简体中文", "intlLocale": "zh-CN", "aliases": ["zh", "zh-Hans", "zh-CN", "zh-SG"]}
+    {
+      "id": "en",
+      "nativeName": "English",
+      "intlLocale": "en-US",
+      "aliases": [
+        "en",
+        "en-US",
+        "en-GB"
+      ]
+    },
+    {
+      "id": "ko",
+      "nativeName": "한국어",
+      "intlLocale": "ko-KR",
+      "aliases": [
+        "ko",
+        "ko-KR"
+      ]
+    },
+    {
+      "id": "zh-Hans",
+      "nativeName": "简体中文",
+      "intlLocale": "zh-CN",
+      "aliases": [
+        "zh",
+        "zh-Hans",
+        "zh-CN",
+        "zh-SG"
+      ]
+    },
+    {
+      "id": "zh-Hant",
+      "nativeName": "繁體中文",
+      "intlLocale": "zh-TW",
+      "aliases": [
+        "zh-Hant",
+        "zh-TW",
+        "zh-HK",
+        "zh-MO"
+      ]
+    },
+    {
+      "id": "ja",
+      "nativeName": "日本語",
+      "intlLocale": "ja-JP",
+      "aliases": [
+        "ja",
+        "ja-JP"
+      ]
+    },
+    {
+      "id": "es",
+      "nativeName": "Español",
+      "intlLocale": "es-ES",
+      "aliases": [
+        "es",
+        "es-ES",
+        "es-MX",
+        "es-419"
+      ]
+    }
   ]
 }

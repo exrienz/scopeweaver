@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.0",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "pi": { "extensions": ["./pi-extension.js"] }
 }

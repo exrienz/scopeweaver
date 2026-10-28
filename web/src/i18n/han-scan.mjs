@@ -2,10 +2,12 @@
 // Comments are ignored; string literals, template literals, JSX text and
 // regex literals are reported. Used by the i18n coverage test and by
 // `node src/i18n/han-scan.mjs` for a manual audit.
+
+import ts from "typescript";
+
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
 
 const HAN = /\p{Script=Han}/u;
 
@@ -29,7 +31,9 @@ export function scanFile(file) {
 }
 
 export function scanText(text, file = path.join(SRC_ROOT, "ordinary.tsx")) {
-  const kind = file.endsWith(".tsx") ? ts.ScriptKind.TSX : file.endsWith(".ts") ? ts.ScriptKind.TS : ts.ScriptKind.JS;
+  let kind = ts.ScriptKind.JS;
+  if (file.endsWith(".tsx")) kind = ts.ScriptKind.TSX;
+  else if (file.endsWith(".ts")) kind = ts.ScriptKind.TS;
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
   const hits = [];
   const visit = (node) => {
@@ -41,16 +45,27 @@ export function scanText(text, file = path.join(SRC_ROOT, "ordinary.tsx")) {
       ts.isJsxText(node) ||
       ts.isRegularExpressionLiteral(node)
     ) {
-      const value = ts.isRegularExpressionLiteral(node) ? node.text : node.text ?? node.getText(sf);
+      const value = ts.isRegularExpressionLiteral(node) ? node.text : (node.text ?? node.getText(sf));
       if (HAN.test(value)) {
-        // Only direct string values of the six typed Chinese catalog objects
+        // Only direct string values of the six typed CJK catalog objects
         // are translation resources. Other code in this file remains scanned.
         const property = node.parent;
         const declaration = property?.parent?.parent;
-        if (path.resolve(file) === path.join(SRC_ROOT, "i18n/messages/zh-Hans.ts") &&
-            ts.isStringLiteral(node) && property && ts.isPropertyAssignment(property) && property.initializer === node &&
-            declaration && ts.isVariableDeclaration(declaration) &&
-            ["app", "common", "english", "interfaceMessages", "providers", "settings"].includes(declaration.name.getText(sf))) return;
+        if (
+          ["zh-hans.ts", "zh-hant.ts", "ja.ts"].some(
+            (name) => path.resolve(file) === path.join(SRC_ROOT, "i18n/messages", name),
+          ) &&
+          ts.isStringLiteral(node) &&
+          property &&
+          ts.isPropertyAssignment(property) &&
+          property.initializer === node &&
+          declaration &&
+          ts.isVariableDeclaration(declaration) &&
+          ["app", "common", "english", "interfaceMessages", "providers", "settings"].includes(
+            declaration.name.getText(sf),
+          )
+        )
+          return;
         const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
         hits.push({ line: line + 1, text: value.trim().slice(0, 120) });
       }

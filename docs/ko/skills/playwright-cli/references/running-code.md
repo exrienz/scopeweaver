@@ -1,6 +1,6 @@
 # 사용자 지정 Playwright 코드 실행
 
-[English](../../../../../skills/playwright-cli/references/running-code.md)
+[English](../../../../../skills/playwright-cli/references/running-code.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/running-code.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/running-code.md) · [日本語](../../../../ja/skills/playwright-cli/references/running-code.md) · [Español](../../../../es/skills/playwright-cli/references/running-code.md)
 
 CLI 명령으로 다루지 않는 고급 흐름에는 `run-code`로 Playwright 코드를 실행합니다.
 

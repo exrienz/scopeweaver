@@ -183,7 +183,7 @@ func (s *Server) changeChatHistory(ctx context.Context, ref chatstate.SessionRef
 						if block.Type != llm.BlockText {
 							continue
 						}
-						for _, lang := range []locale.Lang{locale.En, locale.Ko, locale.ZhHans} {
+						for _, lang := range locale.Languages() {
 							old := composeAgentMessageForLanguage("", run.Prompt.Attachments, s.chatPromptDir(ref), lang)
 							if old != "" && strings.HasSuffix(block.Text, old) {
 								message.Content[blockIndex].Text = strings.TrimSuffix(block.Text, old) + composeAgentMessageForLanguage("", prompt.Attachments, s.chatPromptDir(target), lang)

@@ -1,6 +1,6 @@
 # 테스트 생성 (계획 → 생성 → 수정)
 
-[English](../../../../../skills/playwright-cli/references/test-generation.md)
+[English](../../../../../skills/playwright-cli/references/test-generation.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/test-generation.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/test-generation.md) · [日本語](../../../../ja/skills/playwright-cli/references/test-generation.md) · [Español](../../../../es/skills/playwright-cli/references/test-generation.md)
 
 `playwright-cli`로 Playwright 테스트를 작성하고 유지하는 전체 흐름입니다. 각 조작은 대응하는 TypeScript를 출력하며 이를 테스트 작성에 사용합니다. 다음 절은 각각 사용할 수 있습니다:
 

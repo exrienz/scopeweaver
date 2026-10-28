@@ -53,6 +53,7 @@ export function ScopeTextEditor({
     <Field data-invalid={parsed.errors.length > 0}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldDescription>{description}</FieldDescription>
+      <FieldDescription>{swt("interface.scopeBoundaryNote")}</FieldDescription>
       <Textarea
         id={id}
         rows={8}

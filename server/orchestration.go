@@ -499,11 +499,13 @@ func (s *Server) seedOrchestrationTools() {
 	s.seedWorkerReadbackRebind()  // One-time repair of prior migration: rebind search_all_worker_traces/get_worker_trace/node_detail to worker.
 	s.seedAutoReportFindingBinding()
 	s.unbindGoalMetDefault()
-	s.reseedGoalsPrompt()             // One-time goals prompt version adding operation-constraint extraction.
-	s.reseedMainAgentPrompt()         // One-time main-agent prompt guidance to ask about goals when adding intents after completion.
-	s.reseedPlannerPrompt()           // One-time planner prompt revision for justified zero-intent rounds and quantitative acceptance checks.
-	s.reseedWorkerPrompt()            // One-time worker prompt revision adding evidence requirements for negative conclusions.
-	s.seedReporterAgent()             // One-time report-writing agent, tool bindings, and finding trigger seed.
+	s.reseedGoalsPrompt()     // One-time goals prompt version adding operation-constraint extraction.
+	s.reseedMainAgentPrompt() // One-time main-agent prompt guidance to ask about goals when adding intents after completion.
+	s.reseedPlannerPrompt()   // One-time planner prompt revision for justified zero-intent rounds and quantitative acceptance checks.
+	s.reseedWorkerPrompt()    // One-time worker prompt revision adding evidence requirements for negative conclusions.
+	if !s.seedReporterAgent() {
+		return // Keep dependent one-time migrations retryable after failed creation.
+	}
 	s.upgradeReporterTriggerMessage() // One-time reporter migration to return evidence_version.
 	s.seedFindingTrafficTools()       // Add optional evidence parameters and read-only evidence tools while preserving user configuration.
 	s.seedFindingWorkflowTools()
@@ -736,22 +738,25 @@ func (s *Server) upgradeReporterTriggerMessage() {
 // binds update_finding_report and task-query tools, and triggers it after each report_finding call
 // to write a detailed report. A one-time settings flag prevents recreation after user deletion.
 // Orchestration tools were seeded above, so their bindings are available.
-func (s *Server) seedReporterAgent() {
+// Returns false only when creation failed; a completed seed still honors deletion.
+func (s *Server) seedReporterAgent() bool {
 	const flag = "reporter_agent_seed_v1"
 	if v, _, _ := s.m.pg.GetSetting(flag); v == "true" {
-		return
+		return true
 	}
-	defer func() { _ = s.m.pg.SetSetting(flag, "true") }() // Attempt once regardless of success.
-
 	if exist, _ := s.m.pg.GetAgentByKey("reporter"); exist != nil {
-		return // Preserve an existing key created by the user.
+		_ = s.m.pg.SetSetting(flag, "true")
+		return true // Preserve an existing key created by the user.
 	}
 	a, err := s.m.pg.CreateAgent("reporter", "Report writer",
 		"Writes detailed vulnerability reports: triggered by findings, reads evidence and execution traces, then saves a Markdown report.")
 	if err != nil {
 		log.Printf(locale.Text(locale.ServerDefault(), "[reporter] Could not create agent: %v"), err)
-		return
+		return false
 	}
+	// Retry creation failures on the next startup, but honor user deletion once
+	// the agent exists, including when a later setup step fails.
+	defer func() { _ = s.m.pg.SetSetting(flag, "true") }()
 	if err := s.m.pg.SeedPromptIfEmpty(a.ID, agent.ReporterDefaultPrompt); err != nil {
 		log.Printf(locale.Text(locale.ServerDefault(), "[reporter] Could not seed prompt: %v"), err)
 	}
@@ -781,6 +786,7 @@ func (s *Server) seedReporterAgent() {
 		log.Printf(locale.Text(locale.ServerDefault(), "[reporter] Could not create trigger: %v"), err)
 	}
 	log.Print(locale.Text(locale.ServerDefault(), "[reporter] Seeded report-writer agent and finding trigger"))
+	return true
 }
 
 // seedAutoReportFindingBinding adds "auto" to report_finding's binding ONCE so

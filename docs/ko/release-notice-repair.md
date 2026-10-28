@@ -1,6 +1,6 @@
 # v0.2.1 라이선스 고지 패키징 수정
 
-[English](../release-notice-repair.md)
+[English](../release-notice-repair.md) · 한국어 · [简体中文](../zh-Hans/release-notice-repair.md) · [繁體中文](../zh-Hant/release-notice-repair.md) · [日本語](../ja/release-notice-repair.md) · [Español](../es/release-notice-repair.md)
 
 `repair-release-notices.yml`은 기존 v0.2.1 릴리스를 한 번 수정하는 수동 워크플로입니다.
 배포된 ZIP 5개와 기존 Linux amd64/arm64 이미지에 `THIRD_PARTY_NOTICES.txt`를 추가합니다.

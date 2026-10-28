@@ -8,6 +8,7 @@ import fs from "node:fs";
 import { chromium, request } from "playwright";
 import { runChatPasteChecks } from "./chat-paste.mjs";
 import { runOllamaProfileChecks } from "./ollama-profiles.mjs";
+import { LOCALES, intlLocale, namespaceMessages } from "./locale-resources.mjs";
 
 const base = process.env.SCOPEWEAVER_URL || "http://127.0.0.1:8787";
 const dsn = new URL((process.env.ARTEX_PG_DSN || "").replace("@/", "@localhost/"));
@@ -17,11 +18,19 @@ const out = process.env.E2E_OUT || "e2e-results";
 fs.mkdirSync(out, { recursive: true });
 
 const PASSWORD = "e2e-pass-1234";
-const TEXT = {
-  en: { unavailable: "Cannot confirm setup status", dataError: "Data source is temporarily unavailable; please try again later", usage: "Approval token usage", fallback: "Within interception scope and no interception rule matches commands receive model-based semantic review (allow / ask user / deny)" },
-  "zh-Hans": { unavailable: "无法确认初始化状态", dataError: "数据源暂时不可用；请稍后重试", usage: "审批令牌用量", fallback: "在拦截范围内、且没有任何拦截规则命中的命令，才由模型做语义判断（放行 / 转人工 / 拦截）" },
-  ko: { unavailable: "초기 설정 상태를 확인할 수 없습니다", dataError: "데이터 소스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하세요", usage: "승인 토큰 사용량", fallback: "다음 범위 내:차단 대상 범위이며일치하는 차단 규칙이 없는명령만 모델이 의미를 판단합니다(허용 / 사용자 승인 / 거부)" },
-};
+const interfaces = namespaceMessages("interface"), settings = namespaceMessages("settings");
+const backendCatalogs = Object.fromEntries(LOCALES.filter(locale => !["en", "ko"].includes(locale)).map(locale => [locale,
+  JSON.parse(fs.readFileSync(new URL(`../locale/${locale}.json`, import.meta.url), "utf8")),
+]));
+const backendText = (locale, key) => locale === "en" ? key : locale === "ko"
+  ? ({ "Unauthorized": "인증이 필요합니다", "Data source is temporarily unavailable; please try again later": "데이터 소스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하세요" })[key]
+  : backendCatalogs[locale][key];
+const TEXT = Object.fromEntries(LOCALES.map(locale => [locale, {
+  unavailable: settings[locale].setupUnavailableTitle,
+  dataError: backendText(locale, "Data source is temporarily unavailable; please try again later"),
+  usage: settings[locale].judgeUsageTitle,
+  fallback: ["m1207", "m1208", "m1209", "m1210", "m1211"].map(key => interfaces[locale][key]).join(["en", "es"].includes(locale) ? " " : ""),
+}]));
 
 function sql(query, database = "postgres") {
   const admin = new URL(dsn);
@@ -70,15 +79,16 @@ async function switchLocale(p, locale) {
 async function checkDraftSwitches(p, selector, draft) {
   await p.locator(selector).fill(draft);
   await p.locator(selector).evaluate((node) => {window.__i18nDraftNode=node;});
-  for (const locale of ["en", "ko", "zh-Hans"]) {
+  for (const locale of LOCALES) {
     await switchLocale(p, locale);
     check(await p.locator(selector).inputValue() === draft, `${locale} lost draft`);
     check(await p.locator(selector).evaluate((node) => node === window.__i18nDraftNode), `${locale} remounted draft control`);
   }
+  await switchLocale(p, "zh-Hans");
 }
 
 // 1. A database outage must not expose the first-time setup form.
-for (const locale of ["en", "ko", "zh-Hans"]) {
+for (const locale of LOCALES) {
   await step(`[${locale}] setup fails closed while the database is unavailable`, async () => {
     const page = await openPage(locale);
     setDatabaseAvailable(false);
@@ -186,37 +196,48 @@ await step("[zh-Hans] task, settings and chat drafts survive language switches",
   } finally {await p.context().close();}
 });
 
-await step("[zh-Hans] first API and SSE transport carry Chinese while reconnect preserves log filter", async () => {
-  const p=await openPage("zh-Hans",token);
-  try {
-    const firstApi=p.waitForRequest(r=>new URL(r.url()).pathname.startsWith("/api/") && r.method()==="GET");
-    const stream=p.waitForResponse(r=>r.url().includes("/api/logs/stream") && new URL(r.url()).searchParams.get("lang")==="zh-Hans");
-    await p.goto(`${base}/system/logs`);
-    const first=await firstApi;
-    check(first.headers()["accept-language"]==="zh-Hans","first API did not use stored Chinese");
-    const response=await stream, url=new URL(response.url());
-    check(url.origin===new URL(base).origin && url.searchParams.get("since")==="0","SSE origin or cursor changed");
-    check(!!url.searchParams.get("token"),"SSE auth missing");
-    check(response.headers()["content-language"]==="zh-Hans","SSE Content-Language missing");
-    check((response.headers()["content-type"]||"").includes("text/event-stream"),"not SSE");
-    const filter=p.getByRole("main").getByRole("textbox");
-    await filter.fill("raw-log-filter 原文");
-    const reconnect=p.waitForResponse(r=>r.url().includes("/api/logs/stream") && new URL(r.url()).searchParams.get("lang")==="ko");
-    await switchLocale(p,"ko"); await reconnect;
-    check(await filter.inputValue()==="raw-log-filter 原文","reconnect lost log filter");
-    const chineseAgain=p.waitForResponse(r=>r.url().includes("/api/logs/stream") && new URL(r.url()).searchParams.get("lang")==="zh-Hans");
-    await switchLocale(p,"zh-Hans"); await chineseAgain;
-    const anonymous=await request.newContext();
+for (const locale of LOCALES) {
+  await step(`[${locale}] first API, SSE reconnect, draft and persisted preference`, async () => {
+    const p = await openPage(locale, token);
     try {
-      const denied=await anonymous.get(`${base}/api/intercept/judge/usage?lang=zh-Hans`);
-      check(denied.status()===401 && denied.headers()["content-language"]==="zh-Hans","localized API error transport failed");
-      const body=await denied.json();
-      check(JSON.stringify(body).includes("未授权"),"API error not translated");
-    } finally {await anonymous.dispose();}
-    await p.screenshot({path:`${out}/i18n-sse-zh-Hans.png`});
-  } finally {await p.context().close();}
-});
-
+      const firstApi = p.waitForRequest(r => new URL(r.url()).pathname.startsWith("/api/") && r.method() === "GET");
+      const stream = p.waitForResponse(r => r.url().includes("/api/logs/stream") && new URL(r.url()).searchParams.get("lang") === locale);
+      await p.goto(`${base}/system/logs`);
+      check((await firstApi).headers()["accept-language"] === locale, "first API did not use stored locale");
+      const response = await stream, url = new URL(response.url());
+      check(url.origin === new URL(base).origin && url.searchParams.get("since") === "0", "SSE origin or cursor changed");
+      check(!!url.searchParams.get("token"), "SSE auth missing");
+      check(response.headers()["content-language"] === locale, "SSE Content-Language missing");
+      check((response.headers()["content-type"] || "").includes("text/event-stream"), "not SSE");
+      const filter = p.getByRole("main").getByRole("textbox");
+      const raw = "raw-log-filter 原文 {raw}";
+      await filter.fill(raw);
+      const alternate = locale === "en" ? "ko" : "en";
+      for (const next of [alternate, locale]) {
+        const reconnect = p.waitForResponse(r => r.url().includes("/api/logs/stream") && new URL(r.url()).searchParams.get("lang") === next);
+        await switchLocale(p, next); await reconnect;
+        check(await filter.inputValue() === raw, "reconnect lost log filter draft");
+      }
+      const restoredContext = await browser.newContext({ storageState: await p.context().storageState() });
+      try {
+        const restored = await restoredContext.newPage();
+        restored.on("pageerror", error => pageErrors.push(`${locale} restore: ${error.message}`));
+        const restoredApi = restored.waitForRequest(r => new URL(r.url()).pathname.startsWith("/api/") && r.method() === "GET");
+        await restored.goto(`${base}/system/logs`);
+        check((await restoredApi).headers()["accept-language"] === locale, "restored first API locale changed");
+        await restored.waitForFunction(l => document.documentElement.lang === l, locale);
+        check(await localeSelector(restored).inputValue() === locale, "stored preference did not restore without initializer");
+      } finally { await restoredContext.close(); }
+      const anonymous = await request.newContext();
+      try {
+        const denied = await anonymous.get(`${base}/api/intercept/judge/usage?lang=${locale}`);
+        check(denied.status() === 401 && denied.headers()["content-language"] === locale, "localized API error transport failed");
+        check(JSON.stringify(await denied.json()).includes(backendText(locale, "Unauthorized")), "API error not translated");
+      } finally { await anonymous.dispose(); }
+      await p.screenshot({ path: `${out}/i18n-sse-${locale}.png` });
+    } finally { await p.context().close(); }
+  });
+}
 // 3. Live events use the UI origin, so a reverse proxy only needs one public port.
 await step("[en] log stream SSE stays on the UI origin", async () => {
   const stream = page.waitForResponse((r) => r.url().includes("/api/logs/stream"));
@@ -244,13 +265,16 @@ await step("[api] approval usage excludes other agents and fills 30 days", async
   await anonymous.dispose();
 });
 
-for (const locale of ["en", "ko", "zh-Hans"]) {
+for (const locale of LOCALES) {
   await step(`[${locale}] approval usage card shows past spend while the judge is disabled`, async () => {
     const p = await openPage(locale, token);
     await p.goto(`${base}/system/intercept`);
     await p.getByRole("tab").nth(1).click();
     await p.getByText(TEXT[locale].usage).waitFor();
     await p.getByText(TEXT[locale].fallback, { exact: true }).waitFor();
+    const inputTokens = new Intl.NumberFormat(intlLocale(locale), { notation: "compact", maximumFractionDigits: 1 }).format(2000);
+    const inputStat = p.getByText(settings[locale].judgeUsageInput, { exact: true }).locator("..");
+    await inputStat.getByText(inputTokens, { exact: true }).waitFor();
     const bars = p.locator("div.flex.h-16 > div");
     check((await bars.count()) === 30, `${await bars.count()} daily bars`);
     check((await p.locator("div.flex.h-16 > div.bg-violet-500\\/60").count()) === 2, "expected 2 days with usage");

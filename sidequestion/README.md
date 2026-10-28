@@ -1,6 +1,6 @@
 # ScopeWeaver `/btw`
 
-[한국어](../docs/ko/sidequestion/README.md)
+English · [한국어](../docs/ko/sidequestion/README.md) · [简体中文](../docs/zh-Hans/sidequestion/README.md) · [繁體中文](../docs/zh-Hant/sidequestion/README.md) · [日本語](../docs/ja/sidequestion/README.md) · [Español](../docs/es/sidequestion/README.md)
 
 Ordinary chat, a task's MainAgent, and Workers belonging to the current task support independent side questions. Enter `/btw question` in the main input to submit; an empty `/btw` or the side-question button opens history. Desktop uses a resizable sidebar, while mobile uses a Drawer.
 

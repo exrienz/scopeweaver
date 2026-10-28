@@ -26,6 +26,7 @@ import (
 	"github.com/Autumn-27/artex/agent"
 	"github.com/Autumn-27/artex/db"
 	"github.com/Autumn-27/artex/locale"
+	"github.com/Autumn-27/artex/opencodesdk"
 	"github.com/Autumn-27/norma/llm"
 	"github.com/Autumn-27/norma/skill"
 )
@@ -1835,6 +1836,20 @@ func (s *Server) pgSaveProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := body.LLMProfile
+	if p.Format == opencodesdk.Format && !opencodesdk.ValidModel(p.Model) {
+		writeError(w, 400, locale.NewError("OpenCode SDK model must be providerID/modelID"))
+		return
+	}
+	if p.Format == opencodesdk.Format {
+		if _, err := opencodesdk.NormalizeBaseURL(p.BaseURL); err != nil {
+			writeError(w, 400, err)
+			return
+		}
+		if p.Proxy != "" {
+			writeError(w, 400, locale.NewError("OpenCode SDK bridge proxy settings are not allowed"))
+			return
+		}
+	}
 	p.APIKey = body.APIKey
 	p.Streaming = body.Streaming == nil || *body.Streaming
 	// Negative output limits are meaningless; normalize to zero, omitting the request field. Field-name selection
@@ -1961,6 +1976,17 @@ func (s *Server) pgActivateProfile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, err)
 		return
 	}
+	if p, err := pg.ProfileByID(body.ID); err == nil && p != nil && p.Format == opencodesdk.Format {
+		if !opencodesdk.ValidModel(p.Model) {
+			writeError(w, 400, locale.NewError("OpenCode SDK model must be providerID/modelID"))
+			return
+		}
+		cfg := s.applyLLMPolicy(agent.ConfigFrom(p.Format, p.Model, p.BaseURL, p.APIKey, p.Proxy))
+		if _, err = cfg.NewProvider(); err != nil {
+			writeError(w, 400, err)
+			return
+		}
+	}
 	if err := pg.SetActiveProfile(body.ID); err != nil {
 		writeError(w, 500, err)
 		return
@@ -2024,12 +2050,16 @@ func (s *Server) pgListModels(w http.ResponseWriter, r *http.Request) {
 	apiKey := strings.TrimSpace(req.APIKey)
 	if apiKey == "" && req.ProfileID != nil {
 		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil {
-			if req.Provider != "ollama" || p.Format == "ollama" {
+			if (req.Provider != "ollama" || p.Format == "ollama") && sdkCredentialCompatible(agent.ConfigFrom(req.Provider, "", req.BaseURL, "", req.Proxy), p.Format, p.BaseURL) {
 				apiKey = p.APIKey
 			}
 		}
 	}
 	cfg := s.applyLLMPolicy(agent.ConfigFrom(req.Provider, "", req.BaseURL, apiKey, req.Proxy))
+	if cfg.Provider() == opencodesdk.Format {
+		s.listOpenCodeSDKModels(w, r, cfg)
+		return
+	}
 	if req.Provider == "ollama" {
 		s.listOllamaModels(w, r, cfg)
 		return

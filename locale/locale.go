@@ -25,8 +25,14 @@ const (
 	En Lang = "en"
 	// Ko is Korean, the selectable alternative.
 	Ko Lang = "ko"
-	// ZhHans is Simplified Chinese. Traditional Chinese is not shipped.
+	// ZhHans is Simplified Chinese.
 	ZhHans Lang = "zh-Hans"
+	// ZhHant is Traditional Chinese.
+	ZhHant Lang = "zh-Hant"
+	// Ja is Japanese.
+	Ja Lang = "ja"
+	// Es is Spanish.
+	Es Lang = "es"
 )
 
 // Default is the fallback language when nothing else is negotiated.
@@ -51,7 +57,7 @@ func Supported(l Lang) bool {
 
 // Normalize preserves the historical permissive EN/KO primary-subtag behavior.
 // Chinese matching keeps scripts: explicit Hans wins the region; Hant is never
-// mapped to Hans, and unscripted TW/HK/MO are unsupported. Bare zh follows the
+// mapped to Hans, and unscripted TW/HK/MO select Hant. Bare zh follows the
 // Unicode likely-subtag default zh-Hans-CN. Unsupported tags permit fallback.
 func Normalize(s string) (Lang, bool) {
 	s = strings.ReplaceAll(strings.ToLower(strings.TrimSpace(s)), "_", "-")
@@ -77,7 +83,7 @@ func Normalize(s string) (Lang, bool) {
 
 // matchDefinitions uses declared aliases for additional languages too. Chinese
 // explicit script matching precedes region aliases: Hans-TW stays Hans; Hant-CN
-// stays Hant if a future reviewed Hant definition ships, never Hans today.
+// stays Hant, never Hans.
 func matchDefinitions(s string, parts []string, defs []Definition) (Lang, bool) {
 	exact := func(token string) (Lang, bool) {
 		for _, d := range defs {

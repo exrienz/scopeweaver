@@ -4,6 +4,18 @@ This is the translated upstream ARTEX history from baseline `160fe13`, preservin
 
 ## [Unreleased]
 
+### Test scope and asset rules (#50)
+
+#### Fixed
+
+- `fuzzy_domain` now matches whole domain labels. Blocks match labels anywhere (`.gov` matches `x.gov` and `x.gov.uk`, not `a.government.com`); allows are right-anchored to the domain or its subdomains (`juice-shop.internal` allows `a.juice-shop.internal`, not `juice-shop.internal2` or `juice-shop.internal.attacker.com`). Existing rules may reject asset inserts that previously passed.
+- Agent `add_task_scope` and worker automatic scope additions now pass the current asset gate and fail closed on rule-read errors (reject the write or skip the addition). Manual UI scope edits and existing scope rows are unchanged; no backfill or deletion.
+
+#### Changed
+
+- Clarified scope wording in prompts, UI and documentation: company/task scope is prompt guidance plus an asset-recording and coverage filter, not a network boundary. Asset rules gate recording, not network calls; task rules apply only inside a task, while chat uses global block rules only. Blocking tool calls requires Interception rules (none configured by default except built-in destructive-command rules); a real network boundary needs egress control outside ScopeWeaver.
+- Clarification of the preserved upstream `task_scope` entry below: its claim that scope defines authorization describes no enforced tool-call or network boundary. Scope supplies prompt guidance and asset-query filtering; coverage uses it as a metric denominator.
+
 ### Interception
 
 #### Added

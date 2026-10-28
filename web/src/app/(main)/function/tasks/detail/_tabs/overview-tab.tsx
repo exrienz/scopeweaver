@@ -809,7 +809,7 @@ export function OverviewTab({ taskId }: { taskId: string }) {
           )}
         </CardContent>
       </Card>
-      {/* Test scope defines the coverage denominator and authorization boundary; supports manual additions/deletions. */}
+      {/* Test scope defines the coverage denominator and asset-query filter; supports manual additions/deletions. */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -1168,6 +1168,9 @@ function TaskInterceptRulesCard({ taskId }: { taskId: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        <p className="text-muted-foreground text-xs">{swt("interface.scopeBoundaryNote")}</p>
+        <p className="text-muted-foreground text-xs">{swt("interface.assetRulesBoundaryNote")}</p>
+        <p className="text-muted-foreground text-xs">{swt("interface.fuzzyDomainHelp")}</p>
         {/* Add form. */}
         <div className="flex flex-wrap items-center gap-2">
           <NativeSelect size="sm" value={newAction} onChange={(e) => setNewAction(e.target.value as "block" | "allow")}>

@@ -184,6 +184,14 @@ export default function AssetInterceptPage() {
   }
 
   const placeholder = KIND_OPTIONS.find((o) => o.value === form.kind)?.placeholder ?? "";
+let patternHint = swt("interface.m1181");
+if (form.kind === "cidr") {
+  patternHint = swt("interface.m1179");
+} else if (form.kind === "fuzzy_domain") {
+  patternHint = swt("interface.fuzzyDomainHelp");
+} else if (form.kind.startsWith("fuzzy_")) {
+  patternHint = swt("interface.m1180");
+}
 
   return (
     <div className="flex flex-1 flex-col gap-5 p-6">
@@ -196,6 +204,10 @@ export default function AssetInterceptPage() {
             {swt("interface.m1167")}</p>
         </div>
       </div>
+
+      <p className="text-muted-foreground text-xs">{swt("interface.scopeBoundaryNote")}</p>
+      <p className="text-muted-foreground text-xs">{swt("interface.assetRulesBoundaryNote")}</p>
+      <p className="text-muted-foreground text-xs">{swt("interface.fuzzyDomainHelp")}</p>
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
@@ -307,13 +319,7 @@ export default function AssetInterceptPage() {
 
             <Field
               label={swt("interface.m1172")}
-              hint={
-                form.kind === "cidr"
-                  ? swt("interface.m1179")
-                  : form.kind.startsWith("fuzzy_")
-                    ? swt("interface.m1180")
-                    : swt("interface.m1181")
-              }
+              hint={patternHint}
             >
               <Input
                 placeholder={placeholder}

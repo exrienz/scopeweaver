@@ -1,6 +1,6 @@
 # Multiple traffic records as finding evidence
 
-[한국어](ko/traffic-evidence.md)
+English · [한국어](ko/traffic-evidence.md) · [简体中文](zh-Hans/traffic-evidence.md) · [繁體中文](zh-Hant/traffic-evidence.md) · [日本語](ja/traffic-evidence.md) · [Español](es/traffic-evidence.md)
 
 Finding details support selecting traffic across pages, assigning roles and notes, ordering records, and removing bindings. The traffic page also lets you select multiple records and attach them to an existing finding. Evidence inherited from another task is read only; edit it in the source task.
 

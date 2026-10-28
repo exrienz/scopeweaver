@@ -108,7 +108,7 @@ func (s *Server) ensureLegacyChatHistory(ctx context.Context, ref chatstate.Sess
 			return nil
 		}
 		matched := false
-		for _, lang := range []locale.Lang{locale.En, locale.Ko, locale.ZhHans} {
+		for _, lang := range locale.Languages() {
 			value := composeAgentMessageForLanguage(dto.Text, dto.Attachments, s.chatPromptDir(ref), lang)
 			if value == actual {
 				full[i] = value

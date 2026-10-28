@@ -1,6 +1,6 @@
 # 여러 트래픽 기록을 취약점 증거로 연결하기
 
-[English](../traffic-evidence.md)
+[English](../traffic-evidence.md) · 한국어 · [简体中文](../zh-Hans/traffic-evidence.md) · [繁體中文](../zh-Hant/traffic-evidence.md) · [日本語](../ja/traffic-evidence.md) · [Español](../es/traffic-evidence.md)
 
 취약점 상세 화면의 연결된 트래픽에서는 여러 페이지의 기록 선택, 용도와 설명 지정, 순서 변경, 연결 해제를 지원합니다. 트래픽 화면에서도 여러 기록을 선택해 기존 취약점 하나에 연결할 수 있습니다. 다른 작업에서 상속한 증거는 읽기 전용이며, 원본 작업에서 수정해야 합니다.
 

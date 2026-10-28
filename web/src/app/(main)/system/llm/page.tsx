@@ -29,7 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { applyLLMProfilePreset, getLLMProfilePreset, isCloudEconomyPreset, isOllamaPreset, selectInstalledOllamaModel, type LLMProfilePresetId } from "@/lib/llm-profile-presets";
+import { applyLLMProfilePreset, canReuseSDKBridgeToken, getLLMProfilePreset, isCloudEconomyPreset, isOllamaPreset, selectInstalledOllamaModel, type LLMProfilePresetId } from "@/lib/llm-profile-presets";
 import { api } from "@/lib/api";
 import { pullCommand } from "@/lib/ollama-pull";
 import type { LLMModelDetail, LLMPoolMember, LLMPoolStatus, LLMProfile, LLMRetryOverride, LLMTestResult } from "@/lib/types";
@@ -61,9 +61,10 @@ const MAX_TOKENS_FIELD_HINTS: Record<string, string> = {
   get anthropic() { return swt("interface.m1332"); },
   get "openai-responses"() { return swt("interface.m1333"); },
   get ollama() { return swt("providers.maxTokensFieldOllama"); },
+  get "opencode-sdk"() { return swt("providers.sdkOptionsHelp"); },
 };
 type ProfileFormat = LLMProfile["format"];
-const FORMATS: readonly string[] = ["anthropic", "openai", "openai-responses", "ollama"];
+const FORMATS: readonly string[] = ["anthropic", "openai", "openai-responses", "ollama", "opencode-sdk"];
 const ZAI_PRESETS = ["zai-general", "zai-coding-reference"] as const;
 const CLOUD_PRESETS = [
   { id: "deepseek", key: "providers.deepseek", help: "providers.deepseekHelp" },
@@ -424,8 +425,9 @@ function ProfileSheet({
   function applyPreset(id: string) {
     if (!isNew) return;
     invalidateModels();
-    const next = applyLLMProfilePreset({ name, api_key: apiKey, proxy, session_header_key: sessionHeaderKey }, id);
+    const next = applyLLMProfilePreset({ name, format, api_key: apiKey, proxy, session_header_key: sessionHeaderKey }, id);
     setPreset(id as LLMProfilePresetId);
+    setApiKey(next.api_key);
     setFormat(next.format);
     setModel(next.model);
     setBaseUrl(next.base_url);
@@ -434,11 +436,13 @@ function ProfileSheet({
     setCw(String(next.context_window_k));
     setMaxTokens(String(next.max_tokens));
     setMaxTokensField(fromStore(next.max_tokens_field));
-    // A preset that defines a required session header (opencode-go) fills the field;
-    // presets without one keep whatever the user entered.
-    if (next.session_header_key) setSessionHeaderKey(next.session_header_key);
+    // Explicit template session settings replace the draft; absent settings are kept.
+    if (next.session_header_key !== undefined) setSessionHeaderKey(next.session_header_key);
+    if (next.format === "opencode-sdk") {
+      setProxy(next.proxy);
+      setStreaming(next.streaming);
+    }
     if (next.format === "ollama") {
-      setApiKey(next.api_key);
       setKeepAlive(next.keep_alive);
       setMaxConcurrent(String(next.llm_max_concurrent));
       void loadModels({ format: "ollama", baseUrl: next.base_url, apiKey: "", proxy }, true);
@@ -452,7 +456,10 @@ function ProfileSheet({
   const profileId = profile ? Number(profile.id) : undefined;
   const detailOf = (m: string) => modelDetails.find((d) => (d.name ?? d.model) === m || d.model === m);
   // Warn only for explicit metadata: the model list or a native test reported capabilities without tools.
-  const keyPlaceholder = format === "ollama" ? swt("providers.keyOptional") : "sk-…";
+  const isSDK = format === "opencode-sdk";
+  const retainedKeyHint = isSDK || profile?.format === "opencode-sdk"
+    ? (canReuseSDKBridgeToken(profile, format, baseUrl) ? keyHint : "") : keyHint;
+  const keyPlaceholder = isSDK ? swt("providers.sdkTokenPlaceholder") : format === "ollama" ? swt("providers.keyOptional") : "sk-…";
   const pull = diag && !diag.ok ? pullCommand(diag.error ?? "", model) : "";
   const testedModel = diag?.ok && diag.model === model.trim() ? diag : undefined;
   const modelLacksTools =
@@ -461,6 +468,18 @@ function ProfileSheet({
   function changeFormat(nextFormat: ProfileFormat) {
     invalidateModels();
     setFormat(nextFormat);
+    if (nextFormat !== format && (nextFormat === "opencode-sdk" || format === "opencode-sdk")) setApiKey("");
+    if (nextFormat === "opencode-sdk" && format !== "opencode-sdk") {
+      setBaseUrl(getLLMProfilePreset("opencode-sdk").base_url);
+      setModel("");
+      setProxy("");
+      setSessionHeaderKey("");
+      setThinkingType(NONE);
+      setEffort(NONE);
+      setMaxTokens("0");
+      setMaxTokensField(NONE);
+      setStreaming(true);
+    }
     if (nextFormat === "ollama" && format !== "ollama") {
       // Drop a cloud template's URL and credential before read-only local discovery.
       const cloudTemplateURL = preset && !isOllamaPreset(preset)
@@ -645,6 +664,10 @@ function ProfileSheet({
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>{swt("providers.sdkGroup")}</SelectLabel>
+                    <SelectItem value="opencode-sdk">{swt("providers.opencodeSdk")}</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">{swt("providers.introduction")}</p>
@@ -698,10 +721,18 @@ function ProfileSheet({
                   <SelectItem value="openai">OpenAI (Chat Completions)</SelectItem>
                   <SelectItem value="openai-responses">OpenAI (Responses API)</SelectItem>
                   <SelectItem value="ollama">{swt("providers.ollamaFormat")}</SelectItem>
+                  <SelectItem value="opencode-sdk">{swt("providers.opencodeSdk")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+
+          {isSDK && (
+            <div className="grid gap-2 text-xs">
+              <p className="text-muted-foreground">{swt("providers.sdkHelp")}</p>
+              <p className="text-amber-700 dark:text-amber-400">{swt("providers.sdkSecurity")}</p>
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="p-model">{swt("interface.m0627")}</Label>
@@ -709,7 +740,7 @@ function ProfileSheet({
               <Input
                 id="p-model"
                 className="font-mono"
-                placeholder="claude-opus-4-8"
+                placeholder={isSDK ? "providerID/modelID" : "claude-opus-4-8"}
                 value={model}
                 onChange={(e) => { invalidateModels(); setModel(e.target.value); }}
               />
@@ -773,6 +804,7 @@ function ProfileSheet({
               </Popover>
             </div>
             {modelsError && <p role="alert" className="text-destructive text-xs">{modelsError}</p>}
+            {isSDK && <p className="text-muted-foreground text-xs">{swt("providers.sdkModelHelp")}</p>}
             {modelLacksTools && (
               <p role="alert" className="text-amber-700 text-xs dark:text-amber-400">
                 {swt("providers.noTools")}
@@ -781,13 +813,13 @@ function ProfileSheet({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-base-url">{swt("interface.m1391")}</Label>
+            <Label htmlFor="p-base-url">{isSDK ? swt("providers.sdkEndpoint") : swt("interface.m1391")}</Label>
             <Input
               id="p-base-url"
               className="font-mono"
-              placeholder="https://api.openai.com/v1"
+              placeholder={isSDK ? "http://127.0.0.1:4097" : "https://api.openai.com/v1"}
               value={baseUrl}
-              onChange={(e) => { invalidateModels(); setBaseUrl(e.target.value); }}
+              onChange={(e) => { invalidateModels(); if (isSDK) setApiKey(""); setBaseUrl(e.target.value); }}
             />
           </div>
 
@@ -795,38 +827,41 @@ function ProfileSheet({
             <Label htmlFor="p-proxy">{swt("interface.m1392")}</Label>
             <Input
               id="p-proxy"
+              disabled={isSDK}
               className="font-mono"
               placeholder="socks5://user:pass@127.0.0.1:1080 · http://127.0.0.1:8080"
               value={proxy}
               onChange={(e) => { invalidateModels(); setProxy(e.target.value); }}
             />
             <p className="text-muted-foreground text-xs">
-              {swt("interface.m1393")}</p>
+              {isSDK ? swt("providers.sdkProxyHelp") : swt("interface.m1393")}</p>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="p-session-header">{swt("interface.m1394")}</Label>
             <Input
               id="p-session-header"
+              disabled={isSDK}
               className="font-mono"
               placeholder={swt("interface.m1395")}
               value={sessionHeaderKey}
               onChange={(e) => setSessionHeaderKey(e.target.value)}
             />
             <p className="text-muted-foreground text-xs">
-              {swt("interface.m1396")}<b>{swt("interface.m1397")}</b>{swt("interface.m1398")}</p>
+              {isSDK ? swt("providers.sdkSessionHelp") : <>{swt("interface.m1396")}<b>{swt("interface.m1397")}</b>{swt("interface.m1398")}</>}</p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-api-key">{swt("english.e100")}</Label>
+            <Label htmlFor="p-api-key">{isSDK ? swt("providers.sdkToken") : swt("english.e100")}</Label>
             <Input
               id="p-api-key"
               type="password"
-              placeholder={keyHint ? swt("interface.m1399", { p0: keyHint }) : keyPlaceholder}
+              placeholder={retainedKeyHint ? swt("interface.m1399", { p0: retainedKeyHint }) : keyPlaceholder}
               value={apiKey}
               onChange={(e) => { invalidateModels(); setApiKey(e.target.value); }}
             />
             {format === "ollama" && <p className="text-muted-foreground text-xs">{swt("providers.ollamaKeyHelp")}</p>}
+            {isSDK && <p className="text-muted-foreground text-xs">{swt("providers.sdkTokenHelp")}</p>}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">

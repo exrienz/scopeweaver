@@ -1,6 +1,6 @@
 # ScopeWeaver provenance and modifications
 
-[한국어](ko/PROVENANCE.md)
+English · [한국어](ko/PROVENANCE.md) · [简体中文](zh-Hans/PROVENANCE.md) · [繁體中文](zh-Hant/PROVENANCE.md) · [日本語](ja/PROVENANCE.md) · [Español](es/PROVENANCE.md)
 
 ScopeWeaver is a standalone derivative of [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX), based on commit `160fe13`. It is maintained separately at [cskwork/scopeweaver](https://github.com/cskwork/scopeweaver), without a GitHub fork-network relationship.
 
@@ -22,3 +22,36 @@ token accounting, and fail-closed authentication with atomic initial password
 creation and bounded database pooling. New messages and deployment guidance are
 available in English and Korean. The original authorship is credited in the
 backport commits; the other ScopeWeaver changes remain in place.
+
+## Norma execution and compaction fixes — 2026-10-25
+
+The repository-owned replacement in `third_party/norma` starts from
+[`52f17dd52d95b087265e5d5b306fe85c1ea05599`](https://github.com/Autumn-27/Norma/commit/52f17dd52d95b087265e5d5b306fe85c1ea05599).
+That commit adds only the Apache-2.0 license to v0.4.3
+(`320ae32989da97dd91469bb89164cbfe87d83d5d`): 211 files / 1,293,448 bytes before
+local changes. There is no upstream NOTICE file in this snapshot.
+
+The local fixes retain an executor's originating timeout context through
+settlement, repair the retry test's missing client, scale small-window default
+compaction pacing, and prevent meaningful summary consolidation from starving.
+They also learn only explicit smaller context limits, keep learned ceilings from
+increasing, and distinguish output-length errors from context overflow. Raw
+history and archives remain intact; irreducible views still fail explicitly.
+The stale small-window limitation test becomes a positive consolidation test.
+
+`third_party/norma/README.scopeweaver.md` lists all ten modified upstream files
+and four additions. Each modified upstream file carries a prominent modification
+notice. Other upstream files, the original license and module metadata are
+unchanged. Exported signatures and serialized formats are unchanged; the listed
+behavioral fixes are intentional.
+
+The root module replacement and Docker dependency-copy order select this source.
+The complete Apache license is also included in `THIRD_PARTY_NOTICES.txt` for
+existing archive/container packaging. The backend CI job runs the full nested
+SDK suite separately; root package traversal does not include it. No upstream
+repository publication or database migration is included.
+
+The host-owned `enableNoa` fix forwards the already configured context window,
+including 250K and 1M, rather than silently replacing it with the SDK's 200K
+fallback. Output-token limits, disabled Noa and native Ollama policies are
+separate and retained. See the paired [verification guide](VERIFICATION.md).

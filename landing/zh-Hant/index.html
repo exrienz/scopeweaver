@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ScopeWeaver — 自行代管的多代理程式安全研究控制台</title>
+    <meta
+      name="description"
+      content="ScopeWeaver 是自行代管的控制台，協調目標規劃、自主代理程式、資產範圍、覆蓋率與發現記錄，僅供本機隔離安全研究。Go 後端、內嵌 Next.js、PostgreSQL。衍生自 ARTEX，依 AGPL-3.0 授權。"
+    />
+    <link rel="canonical" href="https://cskwork.github.io/scopeweaver/zh-Hant/" />
+    <link rel="alternate" hreflang="en" href="https://cskwork.github.io/scopeweaver/" />
+    <link rel="alternate" hreflang="ko" href="https://cskwork.github.io/scopeweaver/ko/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://cskwork.github.io/scopeweaver/zh-Hans/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://cskwork.github.io/scopeweaver/zh-Hant/" />
+    <link rel="alternate" hreflang="ja" href="https://cskwork.github.io/scopeweaver/ja/" />
+    <link rel="alternate" hreflang="es" href="https://cskwork.github.io/scopeweaver/es/" />
+    <link rel="alternate" hreflang="x-default" href="https://cskwork.github.io/scopeweaver/" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ScopeWeaver" />
+    <meta
+      property="og:title"
+      content="ScopeWeaver — 自行代管的多代理程式安全研究控制台"
+    />
+    <meta
+      property="og:description"
+      content="在同一自行代管的控制台中協調目標規劃、自主代理程式、資產範圍、覆蓋率與發現記錄，僅供本機隔離研究。"
+    />
+    <meta property="og:url" content="https://cskwork.github.io/scopeweaver/zh-Hant/" />
+    <meta property="og:image" content="https://cskwork.github.io/scopeweaver/assets/img/og-en.jpg" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link
+      rel="preload"
+      href="../assets/fonts/schibsted-grotesk-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳至內容</a>
+
+    <header class="site-header">
+      <div class="wrap site-header__inner">
+        <a class="brand" href=".././" aria-label="ScopeWeaver 首頁">
+          <img src="../assets/img/scopeweaver.svg" alt="" width="30" height="30" />
+          ScopeWeaver
+        </a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="選單"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+
+        <nav class="primary-nav" id="primary-nav" aria-label="主要導覽">
+          <a href="#walkthrough">操作導覽</a>
+          <a href="#bridge">代理程式橋接</a>
+          <a href="#install">安裝</a>
+          <a href="#requirements">需求</a>
+          <a href="#limits">限制</a>
+        </nav>
+
+        <div class="header-tools has-nav">
+          <details class="lang-switch language-menu">
+            <summary aria-label="語言">繁體</summary>
+            <div class="language-options">
+              <a href="../index.html" lang="en" hreflang="en">English</a>
+              <a href="../ko/" lang="ko" hreflang="ko">한국어</a>
+              <a href="../zh-Hans/" lang="zh-Hans" hreflang="zh-Hans">简体中文</a>
+              <span aria-current="page">繁體中文</span>
+              <a href="../ja/" lang="ja" hreflang="ja">日本語</a>
+              <a href="../es/" lang="es" hreflang="es">Español</a>
+            </div>
+          </details>
+          <a
+            class="ghlink"
+            href="https://github.com/cskwork/scopeweaver"
+            rel="noopener"
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="ghlink-text">GitHub</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============ HERO ============ -->
+      <section class="hero">
+        <div class="wrap hero__inner">
+          <div class="hero__lede">
+            <h1>自行代管的控制台，協調<span class="accent">多代理程式安全探索</span>.
+            </h1>
+            <p class="hero__offer">ScopeWeaver 在同一審查介面中協調目標規劃、自主代理程式、資產範圍、覆蓋率與已記錄的發現；在您自己的電腦上執行，僅適用於本機隔離的實驗室目標。</p>
+            <div class="hero__actions">
+              <a
+                class="btn btn--primary"
+                href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+                </svg>下載 v0.1.0</a>
+              <a class="btn btn--ghost" href="#install">設定指南</a>
+            </div>
+            <p class="hero__stack">
+              <strong>Go 後端 · 內嵌 Next.js · PostgreSQL。</strong>衍生自 <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a>，依 AGPL-3.0 授權。</p>
+          </div>
+
+          <div class="hero__media">
+            <figure class="shot">
+              <div class="shot__frame">
+                <div class="shot__bar" aria-hidden="true">
+                  <i></i><i></i><i></i>
+                  <span>localhost:8787 · 儀表板</span>
+                </div>
+                <picture>
+                  <source
+                    media="(min-width: 700px)"
+                    srcset="../assets/img/en-dashboard-1440.webp"
+                  />
+                  <img
+                    src="../assets/img/en-dashboard-960.webp"
+                    width="1440"
+                    height="1000"
+                    alt="英文介面的 ScopeWeaver 儀表板，顯示執行中任務、代理程式活動與覆蓋率摘要。"
+                    fetchpriority="high"
+                  />
+                </picture>
+              </div>
+              <figcaption class="demo">虛構示範資料，並非任何真實系統的掃描。</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WALKTHROUGH ============ -->
+      <section class="section" id="walkthrough" aria-labelledby="walk-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="walk-h">透過實際畫面走完一項任務</h2>
+            <p>ScopeWeaver 將<em>目標是什麼</em>與<em>已測試到哪裡</em>分為兩張相連的圖：共用資產圖及各任務的探索圖。選取畫面，即可查看各階段的位置。</p>
+          </div>
+
+          <div class="walk">
+            <div class="walk__media">
+              <figure class="tabpanel" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="0">
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>儀表板</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-dashboard-1440.webp" />
+                    <img src="../assets/img/en-dashboard-960.webp" width="1440" height="1000" alt="儀表板，顯示任務概覽與近期代理程式活動。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虛構示範資料，並非任何真實系統的掃描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-tasks" role="tabpanel" aria-labelledby="tab-tasks" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>任務</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-tasks-1440.webp" />
+                    <img src="../assets/img/en-tasks-960.webp" width="1440" height="1000" alt="任務清單，顯示狀態、代理程式數量與各任務探索檢視。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虛構示範資料，並非任何真實系統的掃描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-findings" role="tabpanel" aria-labelledby="tab-findings" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>發現</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-findings-1440.webp" />
+                    <img src="../assets/img/en-findings-960.webp" width="1440" height="1000" alt="發現清單，包含已記錄的證據與報告詳情。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虛構示範資料，並非任何真實系統的掃描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>系統設定</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-settings-1440.webp" />
+                    <img src="../assets/img/en-settings-960.webp" width="1440" height="1000" alt="系統設定，包含工作代理程式並行數、版本與更新。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虛構示範資料，並非任何真實系統的掃描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-llm" role="tabpanel" aria-labelledby="tab-llm" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>LLM · 新增</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-llm-templates-1440.webp" />
+                    <img src="../assets/img/en-llm-templates-960.webp" width="1440" height="1000" alt="LLM 設定表單，內含 GLM-5.3 供應商範本。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虛構示範資料，並非任何真實系統的掃描。</figcaption>
+              </figure>
+            </div>
+
+            <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="產品畫面">
+              <button class="tab" id="tab-dashboard" role="tab" aria-selected="true" aria-controls="panel-dashboard" tabindex="0">
+                <span class="tab__title"><span class="tab__step">概覽</span> 儀表板</span>
+                <span class="tab__desc">每項任務、其代理程式與近期活動集中於同一概覽，讓您從目前工作狀態開始。</span>
+              </button>
+              <button class="tab" id="tab-tasks" role="tab" aria-selected="false" aria-controls="panel-tasks" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">探索</span> 任務</span>
+                <span class="tab__desc">規劃器讀取探索圖，每次派發一個意圖；工作代理程式領取單一意圖，執行真實工具，再將新資產、事實與發現寫回兩張圖。</span>
+              </button>
+              <button class="tab" id="tab-findings" role="tab" aria-selected="false" aria-controls="panel-findings" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">審查</span> 發現</span>
+                <span class="tab__desc">發現保留其證據與報告。人員可核准或攔截；「複測」分頁執行獨立複測工作階段，更新發現狀態，而無須重新啟動原任務。</span>
+              </button>
+              <button class="tab" id="tab-settings" role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">設定</span> 系統設定</span>
+                <span class="tab__desc">在執行中的後端設定每個任務的工作代理程式數量（預設三個）、介面語言，以及應用程式內版本與更新控制。</span>
+              </button>
+              <button class="tab" id="tab-llm" role="tab" aria-selected="false" aria-controls="panel-llm" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">供應商</span> LLM 範本</span>
+                <span class="tab__desc">「LLM → 新增」表單內附 GLM-5.3 設定範本。請自行加入 API 金鑰；選取範本不會儲存、啟用或聯絡任何供應商。</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AGENT BRIDGE ============ -->
+      <section class="section band-dark" id="bridge" aria-labelledby="bridge-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="bridge-h">透過程式開發代理程式操作</h2>
+            <p>本機配接器讓 Claude Code、Codex 與 Pi 透過 ScopeWeaver 自身的已驗證 API，建立任務並讀取進度、覆蓋率與發現。</p>
+          </div>
+
+          <div class="bridge">
+            <div class="bridge__body">
+              <p class="agent-line">
+                <strong>這是控制介面，並不取代內部代理程式。</strong>配接器保留 ScopeWeaver 內部規劃器、工作代理程式與模型設定，也不會將程式開發代理程式訂閱轉換為模型 API 金鑰。預設允許讀取；建立任務與暫停／繼續需選擇性啟用 <code>SCOPEWEAVER_ALLOW_WRITES=true</code>.
+              </p>
+
+              <div class="agent-tabs" role="tablist" aria-label="程式開發代理程式">
+                <button class="agent-tab" id="at-claude" role="tab" aria-selected="true" aria-controls="ap-claude" tabindex="0">Claude Code</button>
+                <button class="agent-tab" id="at-codex" role="tab" aria-selected="false" aria-controls="ap-codex" tabindex="-1">Codex</button>
+                <button class="agent-tab" id="at-pi" role="tab" aria-selected="false" aria-controls="ap-pi" tabindex="-1">Pi</button>
+              </div>
+
+              <div class="agent-panel" id="ap-claude" role="tabpanel" aria-labelledby="at-claude" tabindex="0">
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-claude" aria-label="複製">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">複製</span>
+                  </button>
+                  <code id="code-claude"><span class="tok-cmd">claude</span> mcp add <span class="tok-flag">--transport</span> stdio scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+                </div>
+              </div>
+
+              <div class="agent-panel" id="ap-codex" role="tabpanel" aria-labelledby="at-codex" tabindex="0" hidden>
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-codex" aria-label="複製">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">複製</span>
+                  </button>
+                  <code id="code-codex"><span class="tok-cmd">codex</span> mcp add scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+                </div>
+              </div>
+
+              <div class="agent-panel" id="ap-pi" role="tabpanel" aria-labelledby="at-pi" tabindex="0" hidden>
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-pi" aria-label="複製">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">複製</span>
+                  </button>
+                  <code id="code-pi"><span class="tok-cmd">pi</span> <span class="tok-flag">-e</span> /absolute/path/scopeweaver/adapters/agent/pi-extension.js</code>
+                </div>
+              </div>
+
+              <ul class="tool-list">
+                <li><code>health</code> 後端與 LLM 就緒狀態</li>
+                <li><code>list_tasks</code> 狀態、計數、分頁</li>
+                <li><code>get_task</code> 單一任務的持久狀態</li>
+                <li><code>get_coverage</code> 任務資產覆蓋率</li>
+                <li><code>list_findings</code> 篩選與分頁後的發現</li>
+                <li><code>get_finding</code> 詳情、證據與報告</li>
+                <li><code>create_task</code> 排程任務（寫入）</li>
+                <li><code>control_task</code> 暫停／繼續（寫入）</li>
+              </ul>
+
+              <p class="note">需要 Node.js 22+、執行中的後端與既有管理員登入。工具傳回的證據為不受信任的目標內容，絕不能視為指示。憑證保留在您的環境中，錯誤訊息會遮蔽憑證。</p>
+            </div>
+
+            <div class="bridge__aside">
+              <figure class="shot">
+                <div class="phone">
+                  <img
+                    src="../assets/img/en-mobile-390.webp"
+                    width="390"
+                    height="844"
+                    alt="ScopeWeaver 在行動瀏覽器中執行，以窄版呈現任務概覽。"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption class="demo">行動版檢視 · 虛構示範資料。</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INSTALL ============ -->
+      <section class="section" id="install" aria-labelledby="install-h">
+        <div class="wrap install">
+          <div class="section__head">
+            <h2 id="install-h">安裝並在本機執行</h2>
+            <p>ScopeWeaver 由您自行代管，在您的電腦上執行。選擇安裝方式，然後開啟 <code>http://localhost:8787</code>；首次造訪會進入 <code>/setup</code> 以設定管理員密碼。</p>
+          </div>
+
+          <div class="paths">
+            <article class="path">
+              <span class="path__tag">建議</span>
+              <h3>一鍵指令碼</h3>
+              <p>複製儲存庫並執行安裝程式；它會偵測 Docker，提供全 Docker 或本機建置選項。</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-script" aria-label="複製">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">複製</span>
+                </button>
+                <code id="inst-script"><span class="tok-cmd">git</span> clone https://github.com/cskwork/scopeweaver.git
+<span class="tok-cmd">cd</span> scopeweaver
+<span class="tok-cmd">./install.sh</span></code>
+              </div>
+            </article>
+
+            <article class="path">
+              <span class="path__tag">Docker</span>
+              <h3>Docker Compose</h3>
+              <p>在 <code>.env</code> 設定 Postgres 密碼；Compose 會從原始碼建置映像檔，並同時啟動 Postgres。</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-docker" aria-label="複製">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">複製</span>
+                </button>
+                <code id="inst-docker"><span class="tok-cmd">cp</span> .env.example .env
+<span class="tok-cmd">docker</span> compose up -d --build</code>
+              </div>
+            </article>
+
+            <article class="path">
+              <span class="path__tag">預先建置</span>
+              <h3>發行封存檔</h3>
+              <p>下載平台封存檔，填寫資料庫連線設定，再透過監督指令碼啟動。</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-bin" aria-label="複製">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">複製</span>
+                </button>
+                <code id="inst-bin"><span class="tok-cmd">cp</span> config.example.json config.json
+<span class="tok-cmd">./start.sh</span></code>
+              </div>
+              <div class="archive" aria-label="發行封存檔">
+                <span class="chip">linux amd64</span>
+                <span class="chip">linux arm64</span>
+                <span class="chip">macos amd64</span>
+                <span class="chip">macos arm64</span>
+                <span class="chip">windows amd64</span>
+                <span class="chip">GHCR Docker 映像檔</span>
+              </div>
+            </article>
+          </div>
+
+          <p class="hero__stack" style="margin-top:1.75rem">每個封存檔均包含內嵌網頁介面、監督指令碼、技能、設定範例與代理程式配接器。<a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">查看 v0.1.0 與 SHA256SUMS →</a>
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ REQUIREMENTS ============ -->
+      <section class="section" id="requirements" aria-labelledby="req-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="req-h">事前需求</h2>
+            <p>ScopeWeaver 提供應用程式；資料庫與模型供應商由您準備。</p>
+          </div>
+          <div class="req-grid">
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3" /></svg>
+                PostgreSQL
+              </h3>
+              <p>可連線的 Postgres 資料庫。結構已內嵌，每次啟動都會冪等建立。</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a7 7 0 00-4 12.7V18h8v-3.3A7 7 0 0012 2zM9 22h6M10 18v4M14 18v4" /></svg>模型供應商</h3>
+              <p>另行設定的 LLM：設定 <code>ANTHROPIC_API_KEY</code> 或 <code>OPENAI_API_KEY</code>，或在介面輸入。未設定模型時無法執行探索。</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 17l6-6-6-6M12 19h8" /></svg>Node.js 22+（配接器）</h3>
+              <p>僅程式開發代理程式配接器需要。請執行 <code>npm ci</code>，工作目錄為 <code>adapters/agent</code>。</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="14" rx="2" /><path d="M8 20h8M12 18v2" /></svg>本機實驗室目標</h3>
+              <p>僅能用於您擁有且隔離執行的系統。ScopeWeaver 適用於本機隔離研究，禁止線上測試。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ LIMITS & CREDITS ============ -->
+      <section class="section" id="limits" aria-labelledby="limits-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="limits-h">如實說明限制</h2>
+            <p>以下說明本版本的能力與限制，均可對照儲存庫查證。</p>
+          </div>
+
+          <div class="limits-layout">
+            <ul class="limit-list">
+              <li><strong>僅限本機隔離研究。</strong>繼承的使用限制禁止掃描、探測或攻擊任何線上服務，無論是否獲得授權。僅得用於您擁有且已隔離的系統。</li>
+              <li><strong>不宣稱可供正式環境使用或具備已驗證的成效。</strong>本專案不宣稱已具備正式環境滲透測試就緒程度，也不宣稱安全結果經獨立驗證。</li>
+              <li><strong>未驗證的執行環境。</strong>尚未驗證 Docker 映像檔與 Windows 批次檔的實際執行。封裝測試資料不代表真實 Windows 執行環境測試。</li>
+              <li><strong>相依套件仍需改善。</strong>針對工具的更新未解決所有稽核問題。目前稽核指令與剩餘限制請見驗證說明。</li>
+              <li><strong>配接器測試使用本機測試資料。</strong>測試僅證明本機請求／回應契約；尚未獨立驗證程式開發代理程式至供應商的實際執行。詳見 <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hant/VERIFICATION.md" rel="noopener">驗證詳情</a>.</li>
+            </ul>
+
+            <div>
+              <div class="aside-card">
+                <span class="tagline-mark">擁有者工作流程 · 已去識別化</span>
+                <h3>已觀察到的協作流程</h3>
+                <p>已在擁有者工作區觀察到：從對話建立任務、檢查工作代理程式追蹤，以及韓文進度更新。已省略可識別資訊與安全發現。</p>
+                <p>此為協作流程的證據，並非獨立安全評估、已驗證發現或正式環境就緒證明。</p>
+              </div>
+
+              <div class="aside-card">
+                <h3>來源與致謝</h3>
+                <p>ScopeWeaver 為 <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a> 的獨立衍生專案，基於上游提交 <code>160fe13</code>，依 AGPL-3.0 授權。代理程式能力採用 <a href="https://github.com/Autumn-27/norma" rel="noopener">norma</a> SDK；資產同步來自 <a href="https://github.com/Autumn-27/ScopeSentry" rel="noopener">ScopeSentry</a>.
+                </p>
+                <p class="credits">畫面展示隨附的虛構示範資料，並清楚標示為示範，並非真實目標掃描。標題字型為自行代管的 Schibsted Grotesk 與 JetBrains Mono（SIL Open Font License）。韓文使用讀者系統的韓文字型。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-top">
+          <a class="brand" href=".././" aria-label="ScopeWeaver 首頁">
+            <img src="../assets/img/scopeweaver.svg" alt="" width="30" height="30" />
+            ScopeWeaver
+          </a>
+          <nav class="footer-links" aria-label="頁尾">
+            <a href="https://github.com/cskwork/scopeweaver" rel="noopener">GitHub</a>
+            <a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">版本 v0.1.0</a>
+            <a href="https://github.com/cskwork/scopeweaver/tree/main/docs" rel="noopener">文件</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hant/agent-adapter.md" rel="noopener">代理程式配接器</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hant/PROVENANCE.md" rel="noopener">來源</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hant/VERIFICATION.md" rel="noopener">驗證</a>
+          </nav>
+        </div>
+        <div class="footer-bottom">
+          <p>ScopeWeaver 衍生自 ARTEX，依 AGPL-3.0 授權。透過網路代管的修改版本必須公開原始碼。僅限本機隔離學習與驗證。</p>
+          <p>本靜態頁面僅供介紹，不提供即時掃描或對話服務。</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../assets/js/app.js" defer></script>
+  </body>
+</html>

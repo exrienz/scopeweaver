@@ -1,6 +1,6 @@
 # playwright-cli 브라우저 자동화
 
-[English](../../../../skills/playwright-cli/SKILL.md)
+[English](../../../../skills/playwright-cli/SKILL.md) · 한국어 · [简体中文](../../../zh-Hans/skills/playwright-cli/README.md) · [繁體中文](../../../zh-Hant/skills/playwright-cli/README.md) · [日本語](../../../ja/skills/playwright-cli/README.md) · [Español](../../../es/skills/playwright-cli/README.md)
 
 ## 빠른 시작
 

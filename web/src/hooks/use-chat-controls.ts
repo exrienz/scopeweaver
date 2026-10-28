@@ -111,6 +111,9 @@ export function useChatControls(ref: ChatSessionRef | null) {
   }
   const targetFor = (id: string) => state?.inputs.find((item) => item.id === id)?.session ?? ref;
   return {
+    // Stable requested binding (chatControlsBase of the current ref). Lets consumers
+    // distinguish initial hydration of one binding from a real binding/session switch.
+    key,
     context: () => http<ChatContextView>(chatControlsURL(ref!, "context")),
     compact: async (options: ChatCompactOptions) => {
       if (!ref) throw new Error("Chat session unavailable");

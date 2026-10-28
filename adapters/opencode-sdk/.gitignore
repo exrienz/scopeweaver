@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+provider-config*.json
+credentials*.json
+auth.json
+*.secret.json
+*.secrets.json
+secrets/
+credentials/
+*.local.json
+*.log
+.runtime/
+.cache/
+tmp/
+coverage/

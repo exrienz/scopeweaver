@@ -1,0 +1,3 @@
+{
+  "reporterToolCallMessage": "report_finding が検出事項を登録しました。返された JSON から finding_id（独立した検出事項レコード）と finding_node_id（探索ノード）を読んでください。get_finding_traffic(finding_id) で証拠一覧とバージョンを取得します。空の一覧も有効で、報告を妨げません。実行指針で自動紐付けが有効なら、読み取る前にこの検出事項の通信を検証・紐付けしてください。ノードの詳細には finding_node_id を使ってください。最後に update_finding_report(finding_id=finding_node_id, report, evidence_version=実際に読んだバージョン) で保存します。evidence_version は必須で、省略するとレポートは古いままです。2 種類の ID の名前空間を決して混同しないでください。"
+}

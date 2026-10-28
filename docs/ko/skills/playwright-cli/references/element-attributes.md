@@ -1,6 +1,6 @@
 # 요소 속성 조회
 
-[English](../../../../../skills/playwright-cli/references/element-attributes.md)
+[English](../../../../../skills/playwright-cli/references/element-attributes.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/element-attributes.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/element-attributes.md) · [日本語](../../../../ja/skills/playwright-cli/references/element-attributes.md) · [Español](../../../../es/skills/playwright-cli/references/element-attributes.md)
 
 스냅샷에 `id`, `class`, `data-*` 등 DOM 속성이 없으면 `eval`로 확인합니다.
 

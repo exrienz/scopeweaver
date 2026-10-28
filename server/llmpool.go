@@ -20,7 +20,7 @@ import (
 // newLLMHealthRegistry builds the process-wide circuit-breaker registry, mirroring
 // state into PG so a cooling-off window survives a restart. Writes are async and
 // best-effort — the in-memory copy is authoritative.
-func newLLMHealthRegistry(pg *db.DB) *llmpool.Registry {
+func newLLMHealthRegistry(pg *db.DB, start func(func()) bool) *llmpool.Registry {
 	if pg == nil {
 		return llmpool.NewRegistry(nil, nil)
 	}
@@ -30,14 +30,14 @@ func newLLMHealthRegistry(pg *db.DB) *llmpool.Registry {
 			t := st.OpenUntil
 			h.OpenUntil = &t
 		}
-		go func() {
+		start(func() {
 			if err := pg.SaveLLMHealth(h); err != nil {
 				log.Printf(locale.Text(locale.ServerDefault(), "[llmpool] Could not persist circuit-breaker state: %v"), err)
 			}
-		}()
+		})
 	}
 	forget := func(id int64) {
-		go func() { _ = pg.ClearLLMHealth(id) }()
+		start(func() { _ = pg.ClearLLMHealth(id) })
 	}
 	reg := llmpool.NewRegistry(persist, forget)
 	// Restore only windows that haven't expired (LoadLLMHealth filters), so a

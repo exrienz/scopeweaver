@@ -1,0 +1,237 @@
+{
+  "source_revision": "d7365ec23dd2cccd48b010b4bc362a2320cf521d",
+  "hash_encoding": "SHA-256 of encoding/json.Marshal(InputSchema), compact sorted Go map encoding",
+  "add_intent": {
+    "en": {
+      "schema_sha256": "eb9a45a0576028f7fde38c6b49f1a952ac6a37dfef8f2ed15d244759e938032d",
+      "input_schema": {
+        "properties": {
+          "asset_ids": {
+            "description": "Target asset IDs from list_assets, not exploration node IDs (zero/one/many). Include IDs whenever the direction targets concrete sites/endpoints/parameters/hosts: they identify targets, support coverage deduplication, and connect asset lineage. Leave empty only for global reconnaissance with no concrete asset.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "intents": {
+            "description": "Preferred: new directions processed in order. Each item uses summary/asset_ids/parent_ids/priority. Returned ids match input length/order.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "parent_ids": {
+            "description": "Optional upstream anchors (zero/one/many): existing confirmed fact/finding node IDs supporting this direction. Never use intent/goal/hint IDs. Include all combined facts. Leave empty for new top-level reconnaissance; it attaches automatically to the task's origin fact.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "description": "Priority 0-10, default 5",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "Single item: one sentence describing what to do and why. A clear direction does not require an asset ID.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "ko": {
+      "schema_sha256": "5c70e9aee8f4c0e48037dfcaf37d118eeafb1f90ef678070b9134ad70c32ecc8",
+      "input_schema": {
+        "properties": {
+          "asset_ids": {
+            "description": "list_assets의 대상 자산 ID이며 탐색 노드 ID가 아닙니다(0/1/여러 개). 구체적 사이트/엔드포인트/매개변수/호스트를 대상으로 하면 반드시 포함하세요. 대상 식별, 커버리지 중복 방지, 자산 계보 연결에 쓰입니다. 구체적 자산 없는 전역 정찰만 비워 두세요.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "intents": {
+            "description": "권장: 순서대로 처리할 새 방향 배열. 각 항목은 summary/asset_ids/parent_ids/priority를 사용하며 ids는 같은 길이/순서입니다.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "parent_ids": {
+            "description": "선택 상위 연결점(0/1/여러 개): 이 방향의 근거인 기존 확인된 fact/finding 노드 ID. 의도/목표/힌트 ID는 금지입니다. 조합한 사실을 모두 포함하세요. 새 최상위 정찰은 비워 두면 작업 origin fact에 자동 연결됩니다.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "description": "우선순위 0-10, 기본 5",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "단일 항목: 무엇을 왜 할지 한 문장으로 설명하세요. 명확한 방향은 자산 ID에 의존하지 않습니다.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "zh-Hans": {
+      "schema_sha256": "4f1e846d98a2d864aaba60343c43646724370f4a4373ec126cce39315bbb00c0",
+      "input_schema": {
+        "properties": {
+          "asset_ids": {
+            "description": "本方向要测试/攻击的【目标资产 id】（**尽量传**，0/1/多个；是 list_assets 返回的资产 id，不是探索节点 id）：这条探索方向针对哪些资产（站点/接口/参数/主机等）。只要方向围绕某些具体资产就务必传上——它是「这条探索打哪些目标」的结构化标记，用于覆盖去重、把意图连入资产链路。仅当纯全局侦察、确实没有具体目标资产时才留空。",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "intents": {
+            "description": "【优先用这个】要新增的探索方向数组，按顺序处理。每个元素字段同下方顶层字段（summary/asset_ids/parent_ids/priority）。返回 ids 与本数组等长、同序。",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "parent_ids": {
+            "description": "上游锚点 id（可选，0/1/多个）：本方向由哪些【已确认的事实(fact)/发现(finding)】综合得出。**只能填已存在的 fact/finding 节点 id,不能填意图/目标/提示**——意图必须锚在已确认知识上,发现驱动而非凭空规划。多个事实共同产生一个新意图就传多个;顶层全新侦察方向请留空（会自动挂到任务起点 origin fact）。",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "description": "优先级 0-10，默认5",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "[单条] 一句话描述这个探索方向：做什么+为什么。已写清方向即可，不依赖资产 id。",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "zh-Hant": {
+      "schema_sha256": "862675cbf388df6d6dbd00afa3ebb1d7ccd446da18b605094c5d9b2bc9323c8a",
+      "input_schema": {
+        "properties": {
+          "asset_ids": {
+            "description": "本方向要測試/攻擊的【目標資產 id】（**儘量傳**，0/1/多個；是 list_assets 返回的資產 id，不是探索節點 id）：這條探索方向針對哪些資產（站點/介面/引數/主機等）。只要方向圍繞某些具體資產就務必傳上——它是「這條探索打哪些目標」的結構化標記，用於覆蓋去重、把意圖連入資產鏈路。僅當純全域偵察、確實沒有具體目標資產時才留空。",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "intents": {
+            "description": "【優先用這個】要新增的探索方向陣列，按順序處理。每個元素欄位同下方頂層欄位（summary/asset_ids/parent_ids/priority）。返回 ids 與本陣列等長、同序。",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "parent_ids": {
+            "description": "上游錨點 id（可選，0/1/多個）：本方向由哪些【已確認的事實(fact)/發現(finding)】綜合得出。**只能填已存在的 fact/finding 節點 id,不能填意圖/目標/提示**——意圖必須錨在已確認知識上,發現驅動而非憑空規劃。多個事實共同產生一個新意圖就傳多個;頂層全新偵察方向請留空（會自動掛到任務起點 origin fact）。",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "description": "優先順序 0-10，預設5",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "[單條] 一句話描述這個探索方向：做什麼+為什麼。已寫清方向即可，不依賴資產 id。",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "ja": {
+      "schema_sha256": "6375a464712bdb225d5b9c114047dcbb62ddfe5b34792b29fa113d27a1cad6ab",
+      "input_schema": {
+        "properties": {
+          "asset_ids": {
+            "description": "list_assets の対象資産 ID。探索ノード ID ではありません（0 件 / 1 件 / 複数）。方向が具体的なサイト・エンドポイント・パラメーター・ホストを対象にする場合は必ず含めてください。対象の識別、カバレッジの重複排除、資産の系譜の接続に使います。具体的な資産がない全体的な偵察の場合のみ空にします。",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "intents": {
+            "description": "推奨: 新しい方向を順に処理。各項目は summary/asset_ids/parent_ids/priority を使用し、返される ids は入力の長さ・順序に一致",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "parent_ids": {
+            "description": "任意の上流のアンカー（0 件 / 1 件 / 複数）。この方向を裏付ける、既存の確認済み事実・検出事項ノードの ID。探索方針・目標・ヒントの ID は使わないでください。組み合わせたすべての事実を含めてください。新しい最上位の偵察では空にすると、タスクの起点の事実へ自動で接続します。",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "description": "優先度 0～10。既定値 5",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "単一項目: 何をなぜ行うかを 1 文で記述。方向が明確なら資産 ID は不要",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "es": {
+      "schema_sha256": "77e347d710add637c0e3a5401ff3f5a1f0c987d5baee46918c13d67ab44273b9",
+      "input_schema": {
+        "properties": {
+          "asset_ids": {
+            "description": "ID de activos objetivo de list_assets, no ID de nodos de exploración (cero/uno/varios). Incluye ID cuando la dirección apunte a sitios/endpoints/parámetros/hosts concretos: identifican objetivos, permiten deduplicar cobertura y conectan el linaje de activos. Deja vacío solo para reconocimiento global sin activo concreto.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "intents": {
+            "description": "Preferido: direcciones nuevas procesadas en orden. Cada elemento usa summary/asset_ids/parent_ids/priority. Los ids coinciden con longitud/orden de entrada.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "parent_ids": {
+            "description": "Anclajes ascendentes opcionales (cero/uno/varios): ID de nodos de hechos/hallazgos confirmados existentes que respaldan esta dirección. Nunca uses ID de intención/objetivo/indicio. Incluye todos los hechos combinados. Deja vacío para reconocimiento superior nuevo; se adjunta automáticamente al hecho de origen de la tarea.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "description": "Prioridad 0-10, 5 por defecto",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "Elemento único: una frase que describa qué hacer y por qué. Una dirección clara no requiere ID de activo.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "source_revision_note": "Original source_revision applies to en/ko/zh-Hans; source_revisions pins each language independently.",
+  "source_revisions": {
+    "en": "d7365ec23dd2cccd48b010b4bc362a2320cf521d",
+    "ko": "d7365ec23dd2cccd48b010b4bc362a2320cf521d",
+    "zh-Hans": "d7365ec23dd2cccd48b010b4bc362a2320cf521d",
+    "zh-Hant": "7af06f133a164efbb2556019cadba1d4e871ed9f",
+    "ja": "7af06f133a164efbb2556019cadba1d4e871ed9f",
+    "es": "7af06f133a164efbb2556019cadba1d4e871ed9f"
+  }
+}

@@ -70,23 +70,23 @@
     },
     {
       "input": "zh-Hant",
-      "expected": ""
+      "expected": "zh-Hant"
     },
     {
       "input": "zh-TW",
-      "expected": ""
+      "expected": "zh-Hant"
     },
     {
       "input": "zh-HK",
-      "expected": ""
+      "expected": "zh-Hant"
     },
     {
       "input": "zh-MO",
-      "expected": ""
+      "expected": "zh-Hant"
     },
     {
       "input": "zh-Hant-CN",
-      "expected": ""
+      "expected": "zh-Hant"
     },
     {
       "input": "zh-Hant-Hans",
@@ -118,6 +118,54 @@
     },
     {
       "input": "fr",
+      "expected": ""
+    },
+    {
+      "input": "ZH_hant_HK",
+      "expected": "zh-Hant"
+    },
+    {
+      "input": "zh-Hant-TW",
+      "expected": "zh-Hant"
+    },
+    {
+      "input": "ja",
+      "expected": "ja"
+    },
+    {
+      "input": "JA_jp",
+      "expected": "ja"
+    },
+    {
+      "input": "ja-US",
+      "expected": "ja"
+    },
+    {
+      "input": "es",
+      "expected": "es"
+    },
+    {
+      "input": "ES_mx",
+      "expected": "es"
+    },
+    {
+      "input": "es-419",
+      "expected": "es"
+    },
+    {
+      "input": "es-AR",
+      "expected": "es"
+    },
+    {
+      "input": "ja-",
+      "expected": ""
+    },
+    {
+      "input": "es;foo",
+      "expected": ""
+    },
+    {
+      "input": "de-DE",
       "expected": ""
     }
   ]

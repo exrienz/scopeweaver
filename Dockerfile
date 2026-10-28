@@ -14,6 +14,7 @@ ARG TARGETARCH
 ARG VERSION=dev
 WORKDIR /src
 COPY go.mod go.sum ./
+COPY third_party/norma/ ./third_party/norma/
 RUN go mod download
 COPY . .
 COPY --from=frontend /src/web/out/ ./server/webui/dist/

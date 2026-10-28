@@ -16,8 +16,14 @@ type DBLog struct {
 
 // InsertLog appends one log line and returns its auto-assigned id.
 func (d *DB) InsertLog(level, tag, text string) (int64, error) {
+	return d.InsertLogContext(context.Background(), level, tag, text)
+}
+
+// InsertLogContext is InsertLog under a caller-supplied context, so shutdown
+// paths can bound or cancel the write. Same statement, same behavior.
+func (d *DB) InsertLogContext(ctx context.Context, level, tag, text string) (int64, error) {
 	var id int64
-	err := d.QueryRowContext(context.Background(),
+	err := d.QueryRowContext(ctx,
 		"INSERT INTO server_logs(level,tag,text) VALUES($1,$2,$3) RETURNING id",
 		level, tag, text,
 	).Scan(&id)
@@ -26,7 +32,13 @@ func (d *DB) InsertLog(level, tag, text string) (int64, error) {
 
 // RecentLogs returns the most recent limit rows, oldest-first.
 func (d *DB) RecentLogs(limit int) ([]*DBLog, error) {
-	rows, err := d.QueryContext(context.Background(),
+	return d.RecentLogsContext(context.Background(), limit)
+}
+
+// RecentLogsContext is RecentLogs under a caller-supplied context, so callers
+// can bound the restore query. Same statement, same behavior.
+func (d *DB) RecentLogsContext(ctx context.Context, limit int) ([]*DBLog, error) {
+	rows, err := d.QueryContext(ctx,
 		`SELECT id, created_at, level, tag, text
 		   FROM server_logs
 		  ORDER BY id DESC

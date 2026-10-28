@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { chromium, request } from "playwright";
-import { en, ko } from "../web/src/i18n/messages/interface.ts";
-import { interface as zh } from "../web/src/i18n/messages/zh-Hans.ts";
 
-const labels = { en, ko, "zh-Hans": zh };
+import { LOCALES, namespaceMessages } from "./locale-resources.mjs";
+const labels = namespaceMessages("interface");
 
 async function pasteFiles(input, names, text = "") {
   await input.evaluate((element, { names, text }) => {
@@ -22,7 +21,7 @@ async function pasteText(page, input, text) {
   });
   await page.evaluate((value) => navigator.clipboard.writeText(value), text);
   await input.focus();
-  await input.press("Control+V");
+  await input.press("ControlOrMeta+V");
   await page.waitForFunction(() => typeof window.chatPasteReceived === "string");
   return page.evaluate(() => window.chatPasteReceived);
 }
@@ -34,7 +33,7 @@ export async function runChatPasteChecks({ base, token, step, check, openPage, m
   const task = await createdTask.json();
   check((await api.post(`/api/tasks/${task.id}/control`, { data: { action: "pause" } })).ok(), "clipboard fixture must stay paused");
   try {
-  for (const locale of ["en", "ko", "zh-Hans"]) {
+  for (const locale of LOCALES) {
     for (const width of [1440, 390]) {
       for (const surface of ["standalone", "task"]) {
         if (process.env.PASTE_CASE && `${locale}/${width}/${surface}` !== process.env.PASTE_CASE) continue;
@@ -72,7 +71,7 @@ export async function runChatPasteChecks({ base, token, step, check, openPage, m
           await input.fill("");
           await pasteText(p, input, "x".repeat(3000));
           check((await input.inputValue()).length === 3000, "short paste left native text path");
-          await input.press("Control+Z");
+          await input.press("ControlOrMeta+Z");
           check(await input.inputValue() === "", "native paste undo failed");
           const long = "  한글\n中文\n" + "z".repeat(3001);
           const uploadResponse = p.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/chat/upload");

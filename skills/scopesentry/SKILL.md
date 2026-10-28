@@ -5,6 +5,8 @@ description: Manage a deployed ScopeSentry security-scanning platform through MC
 
 # ScopeSentry MCP guide
 
+English · [한국어](../../docs/ko/skills/scopesentry.md) · [简体中文](../../docs/zh-Hans/skills/scopesentry.md) · [繁體中文](../../docs/zh-Hant/skills/scopesentry.md) · [日本語](../../docs/ja/skills/scopesentry.md) · [Español](../../docs/es/skills/scopesentry.md)
+
 This guide is for an already deployed ScopeSentry instance. Connect with Cursor or another MCP client; local source code is unnecessary. The Korean reference is [here](../../docs/ko/skills/scopesentry.md).
 
 ## 1. Preparation

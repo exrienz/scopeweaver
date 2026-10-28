@@ -1,8 +1,12 @@
 # LLM provider templates
 
-ScopeWeaver supports four profile formats: **Anthropic**, **OpenAI Chat Completions**, **OpenAI Responses** and native **Ollama**. Every format keeps its custom base URL, proxy, session header, retry, rate and concurrency settings, so cloud providers, gateways and self-hosted OpenAI-compatible servers keep working unchanged. Ollama is optional, and cloud providers remain the default-compatible path.
+English · [한국어](ko/llm-providers.md) · [简体中文](zh-Hans/llm-providers.md) · [繁體中文](zh-Hant/llm-providers.md) · [日本語](ja/llm-providers.md) · [Español](es/llm-providers.md)
 
-A template fills a **new profile's form** without saving credentials, activating a profile, or modifying existing profiles. Ollama templates also read installed models from the selected server; cloud templates make no requests. Format, base URL and model stay editable after any template.
+The four existing ScopeWeaver profile formats are: **Anthropic**, **OpenAI Chat Completions**, **OpenAI Responses** and native **Ollama**. Every format keeps its custom base URL, proxy, session header, retry, rate and concurrency settings, so cloud providers, gateways and self-hosted OpenAI-compatible servers keep working unchanged. Ollama is optional, and cloud providers remain the default-compatible path.
+
+The optional **OpenCode SDK bridge** adds a separate profile format with its own credentials and restrictions described below. It does not replace the existing API or OpenCode Go gateway paths.
+
+A template fills a **new profile's form** without saving credentials, activating a profile, or modifying existing profiles. Ollama templates also read installed models from the selected server; cloud and SDK templates make no requests. SDK model discovery requires an explicit **Load models** action. Format, base URL and model stay editable after any template.
 
 ## Z.ai GLM-5.3
 
@@ -31,6 +35,57 @@ GLM-5.3 accepts text, has a 1M-token context window, and requires reasoning to r
 Enter a profile name and your own API key. Applying either template preserves any name, key, proxy, session-header setting, and other unrelated preferences already entered. Save when ready; a new profile must be activated separately. The existing **Test connection** and **Load models** controls make real provider requests only when clicked; this change does not perform a live provider test.
 
 Verified against official documentation on **2026-10-03**. Provider availability, account entitlement, and policies may change.
+
+<a id="opencode-sdk-bridge"></a>
+
+## OpenCode SDK bridge
+
+This separate backend supports two pinned runtimes through the same `opencode-sdk` profile format. ScopeWeaver's existing Norma runtime remains responsible for host tool execution and approval checks.
+
+| `SCOPEWEAVER_OPENCODE_RUNTIME` | Pinned runtime | Supported input boundary |
+| --- | --- | --- |
+| `native` (default) | Official CLI and `@opencode/client` 2.1.4 | Preserves raw tool-argument JSON, including 64-bit integers, through responses and host history. Unsafe numeric values outside authoritative raw arguments are rejected. |
+| `legacy` | SDK and CLI 1.19.4 | Structurally valid, safely representable JSON history and JavaScript-safe integers (absolute value no greater than 9,007,199,254,740,991). Benign whitespace and equivalent HTML/Unicode escapes may be normalized; original lexical bytes are not preserved. Unsafe integers and opaque/signed thinking history fail explicitly. Use `native` when lossless raw tool arguments are required. |
+
+`native` starts the genuine pinned CLI through `serve --stdio` and `run --server --session`; the official client handles discovery, event observation and interruption. Each call owns private temporary CLI home/config/data paths and database storage. Genuine native tool definitions and original implementations remain registered: native permissions are ASK, and a separate public `execute.before` guard denies every non-host tool before execution. Host capture requests return to Norma for execution and approvals. OpenCode's generated model/environment/tool context remains alongside the host's system instructions and history. See the adapter guide for the fail-closed unmanaged system/MDM configuration checks; those sources are not read or changed.
+
+Custom providers for `legacy` use the explicit OpenAI-compatible mapping in the adapter guide. **Both runtimes are unsupported on Windows** because the required POSIX process-tree cleanup boundary is not implemented there. Local runtime verification covers **macOS arm64**. CI runs actual-runtime fixtures on **Linux x64**; other platforms are not claimed verified. Untested SDK versions require separate verification.
+
+Start the Bun bridge using the [adapter setup instructions](../adapters/opencode-sdk/README.md). It has its own provider configuration; it does not import saved user OpenCode or cloud-provider credentials. Set a separate `SCOPEWEAVER_OPENCODE_TOKEN` on the bridge (at least 32 non-whitespace characters), then open **LLM → New → Configuration template → OpenCode SDK · bridge**.
+
+Use the tested **Bun 1.3.14** runtime; newer Bun versions have not been verified. From the repository root:
+
+```bash
+cd adapters/opencode-sdk
+bun install --frozen-lockfile --ignore-scripts
+export SCOPEWEAVER_OPENCODE_TOKEN="$(openssl rand -hex 32)"
+bun run start
+```
+
+Keep this token available for the profile's **Bridge token** field. The default runtime is `native` (SDK 2.1.4); set `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` before starting the bridge to select SDK 1.19.4. The listener defaults to `127.0.0.1:4097`. For explicit provider settings, use a dedicated JSON file through `SCOPEWEAVER_OPENCODE_PROVIDER_CONFIG`; follow the adapter guide's schema rather than pointing it at a saved user auth file.
+
+`SCOPEWEAVER_OPENCODE_TIMEOUT_MS` accepts 0–86,400,000 ms; its default `0` leaves duration under host cancellation control. Request bodies are limited to **16 MiB** and oversized input fails explicitly. See the adapter guide for the remaining output and cleanup bounds.
+
+| Field | Value |
+| --- | --- |
+| Format | `opencode-sdk` |
+| Bridge URL | `http://127.0.0.1:4097` |
+| Model | `providerID/modelID`, chosen using **Load models** or entered explicitly |
+| Bridge token | The bridge's `SCOPEWEAVER_OPENCODE_TOKEN`, not a cloud API key |
+| Streaming | On; streams the selected pinned runtime |
+| Thinking / reasoning effort | Omitted by the template; set only values supported by the selected model |
+| Output limit | `0` uses the existing host call-path default; the bridge caps requests at the native model's declared output limit |
+| Proxy / custom session header | Unsupported; the template clears both |
+
+The template clears an unsaved cloud key, leaves the model blank and makes **no model, inference, save or activation request**. Enter the bridge token and click **Load models** to read its catalog without inference. Save when ready and activate separately. **Test connection** performs a model request only when clicked; metadata discovery does not establish inference access.
+
+**Prior verified free-model starting point — 2026-10-25 KST:** choose `opencode/deepseek-v4.1-flash-free` from **Load models** when it is listed. A signed-out macOS arm64 run through genuine native CLI 2.1.4 passed the UI connection test, a host Bash write after manual ASK approval, exact `FREE_OK` file contents plus newline, and the final assistant answer. It used 3 inference POSTs with retries disabled, with no paid fallback or observed native built-in execution. This proves one small isolated workflow; current availability, free-tier eligibility and limits still apply.
+
+When editing, a blank token retains the saved value only for the same SDK endpoint. Changing the URL clears an entered token; changing the endpoint or format with a blank token does not reuse the saved credential. Host aliases such as `localhost`, `127.0.0.1` and `::1` are distinct token scopes. Model IDs and output limits use current native model metadata. Reasoning settings depend on model/provider support and can fail at the provider; errors remain explicit.
+
+**Network and account limits:** run the loopback-only bridge in the same network namespace as ScopeWeaver; inside Docker, localhost means that container. Its downstream provider can still be a cloud service. SDK profiles are therefore rejected in **local-only LLM** mode. Bridge proxies are unsupported; configure downstream provider connectivity on the bridge. A free model ID means current availability, not subscription entitlement, permanent availability, or unlimited use. Confirm the provider's terms and current limits. The bridge does not select a paid fallback or import user accounts; any host-configured failover policy remains separate. Existing API and OpenCode Go profiles remain separate.
+
+**Downgrade preparation:** this change adds `opencode-sdk` to the profile-format database `CHECK` constraint. An older binary cannot start while SDK profiles are present. Back up the database and prepare conversion to an older supported profile format or removal of SDK profiles using the current version before downgrading. Verification used disposable databases; no live database migration was performed here.
 
 ## OpenCode Go (opencode subscription gateway)
 

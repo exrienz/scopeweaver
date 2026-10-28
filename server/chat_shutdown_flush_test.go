@@ -151,7 +151,7 @@ func TestChatShutdownAdmissionTranslationsAndClosingBarrier(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		for _, lang := range []locale.Lang{locale.En, locale.Ko, locale.ZhHans} {
+		for _, lang := range locale.Languages() {
 			for _, kind := range []string{"chat", "side"} {
 				w := httptest.NewRecorder()
 				handler := withLocale(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

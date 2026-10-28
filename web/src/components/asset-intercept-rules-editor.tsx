@@ -50,6 +50,9 @@ export function AssetInterceptRulesEditor({
   }
   return (
     <div className="grid gap-2">
+      <p className="text-muted-foreground text-xs">{swt("interface.scopeBoundaryNote")}</p>
+      <p className="text-muted-foreground text-xs">{swt("interface.assetRulesBoundaryNote")}</p>
+      <p className="text-muted-foreground text-xs">{swt("interface.fuzzyDomainHelp")}</p>
       {value.map((r, i) => {
         const ph = ASSET_INTERCEPT_KIND_OPTIONS.find((o) => o.value === r.kind)?.placeholder ?? "";
         return (

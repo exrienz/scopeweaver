@@ -22,6 +22,9 @@ func TestNormalize(t *testing.T) {
 		"fr":    {Default, false},
 		"":      {Default, false},
 		"zh-CN": {ZhHans, true},
+		"zh-TW": {ZhHant, true},
+		"ja-JP": {Ja, true},
+		"es-MX": {Es, true},
 	}
 	for in, want := range cases {
 		got, ok := Normalize(in)
@@ -58,6 +61,39 @@ func TestFromRequestPrecedence(t *testing.T) {
 	r = newReq("/x", "", "")
 	if got := FromRequest(r); got != En {
 		t.Errorf("default en: got %q", got)
+	}
+}
+
+func TestEveryShippedLanguageNegotiatesAcrossBoundaries(t *testing.T) {
+	old := ServerDefault()
+	defer SetServerDefault(old)
+	for _, lang := range Languages() {
+		t.Run(string(lang), func(t *testing.T) {
+			if got, ok := Normalize(string(lang)); !ok || got != lang {
+				t.Fatalf("canonical locale did not normalize: %s, %v", got, ok)
+			}
+			for _, r := range []*http.Request{
+				newReq("/x?lang="+string(lang), "fr", "en"),
+				newReq("/x", string(lang)+";q=1,en;q=0.1", "en"),
+				newReq("/x", "fr", string(lang)),
+			} {
+				if got := FromRequest(r); got != lang {
+					t.Fatalf("request locale %s, want %s", got, lang)
+				}
+			}
+			SetServerDefault(lang)
+			if FromRequest(newReq("/x", "fr", "unsupported")) != lang || FromContext(WithLang(context.Background(), lang)) != lang {
+				t.Fatal("server or context preference lost")
+			}
+			if got, ok := FromEnv(func(key string) string {
+				if key == "SCOPEWEAVER_LANGUAGE" {
+					return string(lang)
+				}
+				return ""
+			}); !ok || got != lang {
+				t.Fatal("explicit environment preference lost")
+			}
+		})
 	}
 }
 

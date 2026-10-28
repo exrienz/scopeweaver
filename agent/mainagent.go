@@ -178,7 +178,7 @@ func (m *MainAgent) Chat(ctx context.Context, taskID int64, mainSeg int, as *db.
 	noaSessionState := enableNoa(&opts, m.noaEnabledFn, m.workDir, chatNoaSession(ctx, noaSession), noaWarn(noaSession))
 	ctx = attachChatContext(ctx, &opts, def, noaSessionState)
 	ctx = attachSideCapture(ctx, &opts)
-	s := agentcore.NewSession(opts)
+	s := newOwnedSession(ctx, opts)
 	defer s.Close()
 	// reload the prior conversation from the transcript so the agent has context
 	// across turns (each Chat is a fresh session; without this it can't see earlier

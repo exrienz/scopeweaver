@@ -84,7 +84,7 @@ func isTaskLLMChainExhausted(err error) bool {
 // network failure, or 5xx does not rotate providers; the response must explicitly
 // identify quota, credits, billing balance, or payment exhaustion.
 func isQuotaExhaustedError(err error) bool {
-	return err != nil && agent.IsQuotaExhaustedMessage(err.Error())
+	return agent.IsQuotaExhaustedError(err)
 }
 
 type taskLLMSelection struct {
@@ -598,7 +598,9 @@ func (s *Server) agentsForTask(t *Task) *taskAgentBundle {
 	// Cold-digest section 7: background cold-node compaction. The engine's authoritative resolver runs
 	// this per-task planner (agentsForTask), so attach Compactor here. Its provider follows the task LLM
 	// chain using the agent's model; compaction generates the body with one Complete call.
-	pl.SetCompactor(agent.NewCompactor(plannerRuntime, "task-router"))
+	compactor := agent.NewCompactor(plannerRuntime, "task-router")
+	compactor.SetBackgroundRunner(s.ctx, s.startBackgroundWork)
+	pl.SetCompactor(compactor)
 	main := agent.NewMainAgent(mainRuntime, "task-router", s.m.dir, tx, mainRuntime.CompactionWindow(), s.agentMaxTurns("mainagent"))
 	main.SetFindingRecorder(s.evidenceStore())
 	main.SetCompactionWindowResolver(mainRuntime.CompactionWindow)

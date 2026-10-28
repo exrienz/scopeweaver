@@ -1,6 +1,6 @@
 # api-recon reference
 
-[한국어](../../docs/ko/skills/api-recon-reference.md)
+English · [한국어](../../docs/ko/skills/api-recon-reference.md) · [简体中文](../../docs/zh-Hans/skills/api-recon-reference.md) · [繁體中文](../../docs/zh-Hant/skills/api-recon-reference.md) · [日本語](../../docs/ja/skills/api-recon-reference.md) · [Español](../../docs/es/skills/api-recon-reference.md)
 
 Grep recipes, `config.json` templates and troubleshooting. Run grep against `js/`. For one-line bundles, optionally use `js-beautify` or `sed 's/}/}\n/g'`; raw grep with context windows is usually enough.
 

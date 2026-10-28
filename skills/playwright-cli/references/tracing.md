@@ -1,5 +1,7 @@
 # Tracing
 
+English · [한국어](../../../docs/ko/skills/playwright-cli/references/tracing.md) · [简体中文](../../../docs/zh-Hans/skills/playwright-cli/references/tracing.md) · [繁體中文](../../../docs/zh-Hant/skills/playwright-cli/references/tracing.md) · [日本語](../../../docs/ja/skills/playwright-cli/references/tracing.md) · [Español](../../../docs/es/skills/playwright-cli/references/tracing.md)
+
 Capture detailed execution traces for debugging and analysis. Traces include DOM snapshots, screenshots, network activity, and console logs.
 
 ## Basic Usage

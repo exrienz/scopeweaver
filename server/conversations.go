@@ -607,7 +607,10 @@ func (s *Server) pumpLocked(agentKey string) {
 	for s.triggerActive[agentKey] < limit && len(s.triggerQ[agentKey]) > 0 {
 		item := s.nextTriggerRun(agentKey, cfg)
 		s.triggerActive[agentKey]++
-		go s.runAndPump(agentKey, item)
+		if !s.startBackgroundWork(func() { s.runAndPump(agentKey, item) }) {
+			s.triggerActive[agentKey]--
+			return
+		}
 	}
 }
 

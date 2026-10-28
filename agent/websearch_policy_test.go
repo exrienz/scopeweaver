@@ -46,7 +46,7 @@ func TestDeepSeekSearchLivePolicyAndCapturedBackend(t *testing.T) {
 	}
 	settings.Backend = "ddgs"
 	strict = true
-	for _, lang := range []locale.Lang{locale.En, locale.Ko, locale.ZhHans} {
+	for _, lang := range locale.Languages() {
 		result, err = wrapped.Call(locale.WithLang(t.Context(), lang), input, nil)
 		expected := locale.Text(lang, DeepSeekLocalOnlyMessage)
 		if err != nil || !result.IsError || result.Flatten() != expected || calls != 1 {

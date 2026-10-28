@@ -67,26 +67,30 @@ func TestTaskLanguageSavedAndRemovedWithTask(t *testing.T) {
 	}
 }
 
-func TestChineseTaskLanguagePersistenceAndCanonicalValidation(t *testing.T) {
+func TestShippedTaskLanguagePersistenceAndCanonicalValidation(t *testing.T) {
 	d, err := Open(testDSN(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer d.Close()
 	raw := "用户原文 한국어"
-	task, err := d.CreateTaskWithOptions(raw, raw, TaskCreateOptions{Language: locale.ZhHans})
-	if err != nil {
-		t.Fatal(err)
+	for _, language := range locale.Languages() {
+		t.Run(string(language), func(t *testing.T) {
+			task, err := d.CreateTaskWithOptions(raw, raw, TaskCreateOptions{Language: language})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer d.DeleteTask(task.ID)
+			value, ok, err := d.GetSetting("task_language." + strconv.FormatInt(task.ID, 10))
+			if err != nil || !ok || value != string(language) {
+				t.Fatalf("language %s persistence: %q %v %v", language, value, ok, err)
+			}
+			if task.Description != raw || task.Goal != raw {
+				t.Fatal("user task fields modified")
+			}
+		})
 	}
-	defer d.DeleteTask(task.ID)
-	value, ok, err := d.GetSetting("task_language." + strconv.FormatInt(task.ID, 10))
-	if err != nil || !ok || value != string(locale.ZhHans) {
-		t.Fatalf("Chinese persistence: %q %v %v", value, ok, err)
-	}
-	if task.Description != raw || task.Goal != raw {
-		t.Fatal("user task fields modified")
-	}
-	for _, input := range []locale.Lang{"zh-CN", "zh-Hant", ""} {
+	for _, input := range []locale.Lang{"zh-CN", "zh-TW", "zh-hant", "ja-JP", "es-MX", "fr", ""} {
 		created, err := d.CreateTaskWithOptions("canonical language fixture", raw, TaskCreateOptions{Language: input})
 		if input == "" {
 			if err != nil {
@@ -101,7 +105,7 @@ func TestChineseTaskLanguagePersistenceAndCanonicalValidation(t *testing.T) {
 		if err == nil || created != nil {
 			t.Fatalf("noncanonical %q accepted", input)
 		}
-		if got := locale.ErrorMessage(locale.ZhHans, err); !strings.Contains(got, "语言必须为 en, ko, zh-Hans 之一") {
+		if got := locale.ErrorMessage(locale.ZhHans, err); !strings.Contains(got, "语言必须为 "+locale.SupportedLanguageNames()+" 之一") {
 			t.Fatalf("validation stale/English: %s", got)
 		}
 	}

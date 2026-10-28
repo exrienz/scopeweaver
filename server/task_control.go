@@ -135,7 +135,7 @@ func (s *Server) applyTaskControlWithCause(t *Task, action string, pauseCause er
 		// compensated and does not lose an otherwise valid conversation turn.
 		s.cancelTaskChat(t.ID, agent.AbortChatPausedWithTask)
 		out.Paused, out.Status = true, "paused"
-		go s.reconcileConcurrency()
+		s.startBackgroundReconcile()
 	case "resume":
 		queued, err := s.admitPausedTask(t)
 		if err != nil {

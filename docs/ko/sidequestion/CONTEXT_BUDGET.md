@@ -1,6 +1,6 @@
 # 긴 곁가지 대화와 맥락 예산
 
-[English](../../../sidequestion/CONTEXT_BUDGET.md)
+[English](../../../sidequestion/CONTEXT_BUDGET.md) · 한국어 · [简体中文](../../zh-Hans/sidequestion/CONTEXT_BUDGET.md) · [繁體中文](../../zh-Hant/sidequestion/CONTEXT_BUDGET.md) · [日本語](../../ja/sidequestion/CONTEXT_BUDGET.md) · [Español](../../es/sidequestion/CONTEXT_BUDGET.md)
 
 2026-09-11 원본 수정 기록입니다. 이전 구현은 요청 JSON 글자 수를 토큰 수로 간주하고 주 작업의 32K 출력 예약을 이어받았습니다. HTML, JavaScript와 도구 결과가 많으면 정상 곁가지 질문도 너무 일찍 거부했습니다.
 

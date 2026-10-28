@@ -257,6 +257,9 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool, metadata ...map[
 			if len(row.Schema) > 0 {
 				_ = json.Unmarshal(row.Schema, &schema)
 			}
+			// Exact prior-stock schemas (e.g. the bare add_intent intents.items) resolve
+			// to the corrected current stock schema; customized rows pass through untouched.
+			schema = agent.ResolveLegacyStockSchema(t.Name(), schema, t.InputSchema())
 			prepared := agent.DecorateTool(t, row.Description, schema)
 			if row.System {
 				prepared = translatedToolMetadata(prepared, localized[row.Key], locale.FromContext(ctx))

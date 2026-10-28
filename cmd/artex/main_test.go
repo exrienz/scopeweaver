@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"io"
@@ -20,6 +21,36 @@ import (
 
 	"github.com/Autumn-27/artex/agent"
 )
+
+func TestMain(m *testing.M) {
+	// The serve-failure child runs while its parent holds the shared lock.
+	// Acquiring it again here would deadlock the parent waiting for that child.
+	if os.Getenv("SCOPEWEAVER_TEST_SERVE_FAILURE_CHILD") == "1" {
+		os.Exit(m.Run())
+	}
+	os.Exit(dbtest.Main(m))
+}
+
+func TestDatabaseSuiteOwnsSharedLock(t *testing.T) {
+	conn, err := sql.Open("pgx", dbtest.DSN(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	c, err := conn.Conn(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	var acquired bool
+	if err := c.QueryRowContext(t.Context(), "SELECT pg_try_advisory_lock($1)", int64(7337741002)).Scan(&acquired); err != nil {
+		t.Fatal(err)
+	}
+	if acquired {
+		_, _ = c.ExecContext(t.Context(), "SELECT pg_advisory_unlock($1)", int64(7337741002))
+		t.Fatal("cmd/artex suite does not hold the shared database advisory lock")
+	}
+}
 
 func TestShutdownContextPreservesNamedCause(t *testing.T) {
 	signalCtx, signalCancel := context.WithCancel(context.Background())
@@ -88,6 +119,11 @@ func TestShutdownServerHTTPTimeoutStillDrains(t *testing.T) {
 
 func TestMainServeFailureRunsShutdown(t *testing.T) {
 	if os.Getenv("SCOPEWEAVER_TEST_SERVE_FAILURE_CHILD") == "1" {
+		// The child starts with an empty config and validates the test DSN before
+		// making it the application's DSN, preserving dbtest's live-DB guard.
+		if err := os.Setenv("ARTEX_PG_DSN", dbtest.DSN(t)); err != nil {
+			t.Fatal(err)
+		}
 		flag.CommandLine = flag.NewFlagSet("artex", flag.ExitOnError)
 		os.Args = []string{"artex", "-addr", os.Getenv("SCOPEWEAVER_TEST_OCCUPIED_ADDR"), "-data", "data", "-proxy", ""}
 		os.Exit(run())
@@ -114,7 +150,7 @@ func TestMainServeFailureRunsShutdown(t *testing.T) {
 		}
 		cmd.Env = append(cmd.Env, entry)
 	}
-	cmd.Env = append(cmd.Env, "ARTEX_TEST_DSN="+dsn, "ARTEX_PG_DSN="+dsn, "ARTEX_CONFIG="+filepath.Join(cmd.Dir, "config.json"), "ARTEX_SELFUPDATE_SMOKE=1", "SCOPEWEAVER_TEST_SERVE_FAILURE_CHILD=1", "SCOPEWEAVER_TEST_OCCUPIED_ADDR="+listener.Addr().String())
+	cmd.Env = append(cmd.Env, "ARTEX_TEST_DSN="+dsn, "ARTEX_CONFIG="+filepath.Join(cmd.Dir, "config.json"), "ARTEX_SELFUPDATE_SMOKE=1", "SCOPEWEAVER_TEST_SERVE_FAILURE_CHILD=1", "SCOPEWEAVER_TEST_OCCUPIED_ADDR="+listener.Addr().String())
 	out, err := cmd.CombinedOutput()
 	var exit *exec.ExitError
 	if !errors.As(err, &exit) || exit.ExitCode() != 1 {

@@ -49,6 +49,12 @@ jobs:
         working-directory: adapters/agent
       - run: npm test && npm run check
         working-directory: adapters/agent
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Verify OpenCode SDK adapter
+        working-directory: adapters/opencode-sdk
+        run: bun install --frozen-lockfile --ignore-scripts && bun run check && bun test --timeout 30000
       - name: Test adapter against real backend
         env:
           SCOPEWEAVER_ADAPTER_E2E: "1"
@@ -77,6 +83,8 @@ jobs:
           cache-dependency-path: |
             web/package-lock.json
             e2e/package-lock.json
+      - name: Test compaction request attribution
+        run: node --test e2e/chat-summary-requests.test.mjs
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -106,7 +114,7 @@ jobs:
           ARTEX_TEST_DSN: postgres://scopeweaver_test:test_only_password@localhost:5432/scopeweaver_test_chat_browser?sslmode=disable
           SCOPEWEAVER_CHAT_E2E: "1"
           CHAT_E2E_SUITE: standard
-        run: go test ./server -run '^TestChatControlsE2E$' -count=1 -timeout 12m -v
+        run: go test ./server -run '^TestChatControlsE2E$' -count=1 -timeout 21m -v
       - if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -143,6 +151,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Test native six-language Windows launcher
+        run: node e2e/windows-launcher.mjs
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -175,10 +185,15 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
       - name: Check shell syntax
         run: |
           for script in *.sh; do bash -n "$script"; done
           sh -n start.sh
+      - name: Test six-language script messages and isolated launchers
+        run: node e2e/script-locales.mjs
       - name: Test local installer with isolated fixtures
         run: bash e2e/install-local.sh
       - name: Test Compose credential bootstrap
@@ -187,6 +202,9 @@ jobs:
         run: |
           bash e2e/package-notices.sh
           python3 -m unittest discover -s e2e -p 'test_release_notices.py' -v
+      - name: Test patched Norma SDK
+        working-directory: third_party/norma
+        run: go test ./... -count=1
       - name: Run all Go packages with separate disposable databases
         env:
           PGHOST: localhost

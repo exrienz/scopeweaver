@@ -11,6 +11,10 @@
     <link rel="canonical" href="https://cskwork.github.io/scopeweaver/" />
     <link rel="alternate" hreflang="en" href="https://cskwork.github.io/scopeweaver/" />
     <link rel="alternate" hreflang="ko" href="https://cskwork.github.io/scopeweaver/ko/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://cskwork.github.io/scopeweaver/zh-Hans/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://cskwork.github.io/scopeweaver/zh-Hant/" />
+    <link rel="alternate" hreflang="ja" href="https://cskwork.github.io/scopeweaver/ja/" />
+    <link rel="alternate" hreflang="es" href="https://cskwork.github.io/scopeweaver/es/" />
     <link rel="alternate" hreflang="x-default" href="https://cskwork.github.io/scopeweaver/" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 
@@ -70,10 +74,17 @@
         </nav>
 
         <div class="header-tools has-nav">
-          <div class="lang-switch" role="group" aria-label="Language">
-            <span aria-current="true">EN</span>
-            <a href="ko/" lang="ko" hreflang="ko">한국어</a>
-          </div>
+          <details class="lang-switch language-menu">
+            <summary aria-label="Language">EN</summary>
+            <div class="language-options">
+              <span aria-current="true">English</span>
+              <a href="ko/" lang="ko" hreflang="ko">한국어</a>
+              <a href="zh-Hans/" lang="zh-Hans" hreflang="zh-Hans">简体中文</a>
+              <a href="zh-Hant/" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a>
+              <a href="ja/" lang="ja" hreflang="ja">日本語</a>
+              <a href="es/" lang="es" hreflang="es">Español</a>
+            </div>
+          </details>
           <a
             class="ghlink"
             href="https://github.com/cskwork/scopeweaver"

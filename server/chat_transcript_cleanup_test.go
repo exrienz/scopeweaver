@@ -142,7 +142,7 @@ func TestChatTranscriptRestartCleanupPreservesReferencedAndUnknownFiles(t *testi
 func TestChatTranscriptRecoveryValidatesStorage(t *testing.T) {
 	originalLanguage := locale.ServerDefault()
 	defer locale.SetServerDefault(originalLanguage)
-	for _, lang := range []locale.Lang{locale.En, locale.Ko, locale.ZhHans} {
+	for _, lang := range locale.Languages() {
 		t.Run(string(lang), func(t *testing.T) {
 			locale.SetServerDefault(lang)
 			s := &Server{m: &Manager{dir: t.TempDir()}}

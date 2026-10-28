@@ -4,10 +4,15 @@
 (function () {
   "use strict";
 
-  var isKo = (document.documentElement.lang || "en").indexOf("ko") === 0;
-  var T = isKo
-    ? { copy: "복사", copied: "복사됨", copyFail: "직접 선택하세요", menu: "메뉴" }
-    : { copy: "Copy", copied: "Copied", copyFail: "Select manually", menu: "Menu" };
+  var translations = {
+    en: { copy: "Copy", copied: "Copied", copyFail: "Select manually", menu: "Menu" },
+    ko: { copy: "복사", copied: "복사됨", copyFail: "직접 선택하세요", menu: "메뉴" },
+    "zh-Hans": { copy: "复制", copied: "已复制", copyFail: "请手动选择", menu: "菜单" },
+    "zh-Hant": { copy: "複製", copied: "已複製", copyFail: "請手動選取", menu: "選單" },
+    ja: { copy: "コピー", copied: "コピーしました", copyFail: "手動で選択してください", menu: "メニュー" },
+    es: { copy: "Copiar", copied: "Copiado", copyFail: "Selecciona manualmente", menu: "Menú" }
+  };
+  var T = translations[document.documentElement.lang] || translations.en;
 
   /* ---- Mobile navigation toggle ---- */
   var toggle = document.querySelector(".nav-toggle");

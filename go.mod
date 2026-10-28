@@ -60,3 +60,6 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+// Keep the originating tool context across timeout settlement; see third_party/norma/README.scopeweaver.md.
+replace github.com/Autumn-27/norma => ./third_party/norma

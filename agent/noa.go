@@ -40,10 +40,17 @@ func enableNoa(opts *agentcore.Options, enabled func() bool, archiveRoot, sessio
 	if opts.OnWarn == nil {
 		opts.OnWarn = onWarn
 	}
+	// Keep the profile's resolved context window when replacing its compactor.
+	// MaxTokens limits output separately; an absent window keeps the SDK fallback.
+	window := 0
+	if opts.Compaction != nil && opts.Compaction.ContextWindow > 0 {
+		window = opts.Compaction.ContextWindow
+	}
 	session, err := noaadapter.EnableWithSession(opts, noaadapter.Options{
-		ArchiveBaseDir: filepath.Join(archiveRoot, "noa"),
-		SessionID:      sessionID,
-		OnWarn:         onWarn,
+		ArchiveBaseDir:    filepath.Join(archiveRoot, "noa"),
+		SessionID:         sessionID,
+		OnWarn:            onWarn,
+		ModelContextLimit: window,
 	})
 	if err != nil {
 		if onWarn != nil {

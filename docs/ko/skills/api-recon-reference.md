@@ -1,6 +1,6 @@
 # api-recon 참고서
 
-[English](../../../skills/api-recon/reference.md)
+[English](../../../skills/api-recon/reference.md) · 한국어 · [简体中文](../../zh-Hans/skills/api-recon-reference.md) · [繁體中文](../../zh-Hant/skills/api-recon-reference.md) · [日本語](../../ja/skills/api-recon-reference.md) · [Español](../../es/skills/api-recon-reference.md)
 
 grep 예제, `config.json` 템플릿과 문제 해결입니다. grep은 `js/`에서 실행합니다. 한 줄 bundle은 필요하면 `js-beautify` 또는 `sed 's/}/}\n/g'`를 사용하되 보통 주변 범위를 포함한 raw grep이면 충분합니다.
 

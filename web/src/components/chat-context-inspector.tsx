@@ -39,7 +39,14 @@ export const ChatContextInspector = forwardRef<ChatContextHandle, { controls: Co
     useEffect(() => {
       if (open && panel.current) panel.current.scrollTop = 0;
     }, [open]);
-    const identity = controls?.state?.session ? JSON.stringify(controls.state.session) : "draft";
+    const binding = controls?.key ?? "";
+    const session = controls?.state?.session ? JSON.stringify(controls.state.session) : "";
+    // Hydration bookkeeping: the first resolved session for a binding is initial
+    // hydration, not a session switch. A panel opened before that response must survive
+    // it, while later session changes under the same binding (task/exploration/segment
+    // can move under one URL) and binding switches must keep resetting everything and
+    // dropping late in-flight context responses.
+    const hydrated = useRef({ binding: "", session: "" });
     useEffect(() => {
       alive.current = true;
       return () => {
@@ -48,6 +55,11 @@ export const ChatContextInspector = forwardRef<ChatContextHandle, { controls: Co
       };
     }, []);
     useEffect(() => {
+      const previous = hydrated.current;
+      hydrated.current = { binding, session };
+      // This binding has not resolved a session yet: the upcoming null -> resolved
+      // transition is hydration, so leave whatever the user opened/typed untouched.
+      if (previous.binding === binding && !previous.session) return;
       epoch.current++;
       setView(null);
       setError("");
@@ -55,7 +67,7 @@ export const ChatContextInspector = forwardRef<ChatContextHandle, { controls: Co
       setFocus("");
       setKeep(String(chatCompactDefaults.keep_recent));
       setOpen(false);
-    }, [identity]);
+    }, [binding, session]);
     async function load() {
       if (!controls?.state || working.current) return;
       const token = ++epoch.current;

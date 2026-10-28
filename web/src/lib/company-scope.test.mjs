@@ -1,3 +1,4 @@
+import { LOCALES } from "../i18n/config.ts";
 import { translateIn } from "../i18n/runtime.ts";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -56,7 +57,7 @@ test("host values normalize like domains", () => {
 });
 
 test("host labels and hints translate in every shipped locale", () => {
-  for (const locale of ["en", "ko", "zh-Hans"]) {
+  for (const locale of LOCALES) {
     for (const key of ["interface.m2883", "interface.m2884", "interface.m2885"]) {
       const text = translateIn(locale, key);
       assert.notEqual(text, key, `${locale} ${key}`);

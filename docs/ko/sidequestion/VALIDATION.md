@@ -1,6 +1,6 @@
 # `/btw` 검증 기록
 
-[English](../../../sidequestion/VALIDATION.md)
+[English](../../../sidequestion/VALIDATION.md) · 한국어 · [简体中文](../../zh-Hans/sidequestion/VALIDATION.md) · [繁體中文](../../zh-Hant/sidequestion/VALIDATION.md) · [日本語](../../ja/sidequestion/VALIDATION.md) · [Español](../../es/sidequestion/VALIDATION.md)
 
 원본의 과거 기록입니다. 날짜: 2026-09-10. 브랜치: `codex/btw-side-question`. 기준: `8dae851b9b622f2ff2631f332fde9719d0b16fba`. 새 ScopeWeaver 결과가 아닙니다.
 

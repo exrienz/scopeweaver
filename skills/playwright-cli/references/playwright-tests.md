@@ -1,5 +1,7 @@
 # Running Playwright Tests
 
+English · [한국어](../../../docs/ko/skills/playwright-cli/references/playwright-tests.md) · [简体中文](../../../docs/zh-Hans/skills/playwright-cli/references/playwright-tests.md) · [繁體中文](../../../docs/zh-Hant/skills/playwright-cli/references/playwright-tests.md) · [日本語](../../../docs/ja/skills/playwright-cli/references/playwright-tests.md) · [Español](../../../docs/es/skills/playwright-cli/references/playwright-tests.md)
+
 To run Playwright tests, use the `npx playwright test` command, or a package manager script. To avoid opening the interactive html report, use `PLAYWRIGHT_HTML_OPEN=never` environment variable.
 
 ```bash

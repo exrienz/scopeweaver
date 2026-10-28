@@ -104,7 +104,7 @@ for stage in ci build; do
 done
 
 export INSTALL_FIXTURE_FAIL=''
-for language in en ko; do
+for language in en ko zh-Hans zh-Hant ja es; do
   export INSTALL_FIXTURE_LANGUAGE="$language" INSTALL_FIXTURE_OLLAMA=1
   rm -f "$fixture/config.json"
   export INSTALL_FIXTURE_ANSWERS='2\n1\n\n\n\n\nscopeweaver_test_install\n\ny\nqwen2.5-coder:7b\n'

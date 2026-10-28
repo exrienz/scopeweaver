@@ -1,5 +1,7 @@
 # ScopeSentry MCP 사용 안내
 
+[English](../../../skills/scopesentry/SKILL.md) · 한국어 · [简体中文](../../zh-Hans/skills/scopesentry.md) · [繁體中文](../../zh-Hant/skills/scopesentry.md) · [日本語](../../ja/skills/scopesentry.md) · [Español](../../es/skills/scopesentry.md)
+
 배포된 ScopeSentry 인스턴스용 안내입니다. Cursor 또는 다른 MCP 클라이언트로 연결하며 로컬 소스는 필요하지 않습니다. [English](../../../skills/scopesentry/SKILL.md)
 
 ## 1. 준비

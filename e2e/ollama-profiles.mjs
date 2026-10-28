@@ -4,13 +4,10 @@
 // the backend runs elsewhere (default 127.0.0.1, i.e. the binary runs on this host).
 import http from "node:http";
 import fs from "node:fs";
-import { en as iEn, ko as iKo } from "../web/src/i18n/messages/interface.ts";
-import { en as pEn, ko as pKo } from "../web/src/i18n/messages/providers.ts";
-import { en as sEn, ko as sKo } from "../web/src/i18n/messages/settings.ts";
-import { interface as iZh, providers as pZh, settings as sZh, common as cZh } from "../web/src/i18n/messages/zh-Hans.ts";
-import { en as cEn, ko as cKo } from "../web/src/i18n/messages/common.ts";
 
-const T = { en: { i: iEn, p: pEn, s: sEn, c: cEn }, ko: { i: iKo, p: pKo, s: sKo, c: cKo }, "zh-Hans": { i: iZh, p: pZh, s: sZh, c: cZh } };
+import { LOCALES, namespaceMessages } from "./locale-resources.mjs";
+const interfaces = namespaceMessages("interface"), providers = namespaceMessages("providers"), settings = namespaceMessages("settings"), common = namespaceMessages("common");
+const T = Object.fromEntries(LOCALES.map(locale => [locale, { i: interfaces[locale], p: providers[locale], s: settings[locale], c: common[locale] }]));
 const TOOL_MODEL = "fixture-installed-tools:7b";
 const NO_TOOLS_MODEL = "aaa-fixture-notools:8b";
 const MODELS = {
@@ -87,7 +84,7 @@ export async function runOllamaProfileChecks({ base, token, step, check, openPag
   const fixture = await startFixture();
   const auth = { Authorization: `Bearer ${token}` };
   try {
-    for (const locale of ["en", "ko", "zh-Hans"]) {
+    for (const locale of LOCALES) {
       const t = T[locale];
       const name = `e2e ollama ${locale}`;
       const initialHits = fixture.hits.length;

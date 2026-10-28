@@ -1,6 +1,6 @@
 # 브라우저 세션 관리
 
-[English](../../../../../skills/playwright-cli/references/session-management.md)
+[English](../../../../../skills/playwright-cli/references/session-management.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/session-management.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/session-management.md) · [日本語](../../../../ja/skills/playwright-cli/references/session-management.md) · [Español](../../../../es/skills/playwright-cli/references/session-management.md)
 
 상태를 저장하며 여러 독립 브라우저 세션을 동시에 실행합니다.
 

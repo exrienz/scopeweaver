@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import {request} from "playwright";
-import {en,ko} from "../web/src/i18n/messages/interface.ts";
-import {interface as zh} from "../web/src/i18n/messages/zh-Hans.ts";
-const labels={en,ko,"zh-Hans":zh};
+import { LOCALES, namespaceMessages } from "./locale-resources.mjs";
+const labels = namespaceMessages("interface");
 
 export async function waitChatState(api,path,predicate,timeout=20000){const deadline=Date.now()+timeout;let state;while(Date.now()<deadline){const response=await api.get(path);assert.ok(response.ok(),await response.text());state=await response.json();if(predicate(state))return state;await new Promise(resolve=>setTimeout(resolve,75))}throw new Error(`chat state did not settle: ${JSON.stringify(state)}`)}
 
 export async function runChatQueueChecks({base,token,step,check,openPage,recoverInput,fixture}){
  const api=await request.newContext({baseURL:base,extraHTTPHeaders:{Authorization:`Bearer ${token}`}});
- for(const locale of ["en","ko","zh-Hans"])for(const width of [1440,390])for(const surface of ["standalone","task"]){
+ for(const locale of LOCALES)for(const width of [1440,390])for(const surface of ["standalone","task"]){
   if(process.env.CHAT_QUEUE_CASE && `${locale}/${width}/${surface}`!==process.env.CHAT_QUEUE_CASE)continue;
   const t=labels[locale];let path,url,task;
   if(surface==="standalone"){const r=await api.post("/api/conversations",{data:{agent_key:"auto",title:"Queue browser fixture"}});check(r.ok(),"conversation creation failed");const conv=await r.json();path=`/api/conversations/${conv.id}/controls`;url=`${base}/chat?c=${conv.id}`}
@@ -59,7 +58,7 @@ export async function runChatQueueChecks({base,token,step,check,openPage,recover
 
 export async function runChatHistoryChecks({base,token,step,check,openPage,fixture}){
  const api=await request.newContext({baseURL:base,extraHTTPHeaders:{Authorization:`Bearer ${token}`}});
- for(const locale of ["en","ko","zh-Hans"])for(const width of [1440,390])for(const surface of ["standalone","task"]){
+ for(const locale of LOCALES)for(const width of [1440,390])for(const surface of ["standalone","task"]){
   if(process.env.CHAT_HISTORY_CASE&&`${locale}/${width}/${surface}`!==process.env.CHAT_HISTORY_CASE)continue;
   const t=labels[locale];let parent,path,url,task;
   if(surface==="standalone"){const r=await api.post("/api/conversations",{data:{agent_key:"auto",title:"History browser fixture"}});check(r.ok(),"conversation fixture failed");parent=await r.json();path=`/api/conversations/${parent.id}/controls`;url=`${base}/chat?c=${parent.id}`}
@@ -72,7 +71,7 @@ export async function runChatHistoryChecks({base,token,step,check,openPage,fixtu
    await input.fill("second prompt");await input.evaluate(element=>{const data=new DataTransfer();data.items.add(new File(["document"],"report.txt",{type:"text/plain"}));element.dispatchEvent(new ClipboardEvent("paste",{bubbles:true,cancelable:true,clipboardData:data}))});
    await p.getByRole("button",{name:"report.txt",exact:true}).waitFor();await p.waitForFunction(()=>!document.querySelector("[data-attachment-id] .animate-spin"));
    await p.getByRole("button",{name:t.m0073,exact:true}).click();await p.locator("div").filter({hasText:/^second prompt$/}).last().waitFor();await p.getByRole("button",{name:t.chatEdit,exact:true}).nth(1).waitFor();
-   await input.fill("unsent draft");await p.getByRole("button",{name:t.chatEdit,exact:true}).last().click();const dialog=p.getByRole("dialog");await dialog.locator("textarea").waitFor();check(await dialog.locator("textarea").inputValue()==="second prompt","edit did not restore original prompt");await dialog.getByRole("button",{name:"report.txt",exact:true}).waitFor();await dialog.getByRole("button",{name:t.chatCancelEdit,exact:true}).click();check(await input.inputValue()==="unsent draft","cancelled edit changed composer draft");
+   await input.fill("unsent draft");await p.getByRole("button",{name:t.chatEdit,exact:true}).last().click();const dialog=p.getByRole("dialog");await dialog.locator("textarea").waitFor();check(await dialog.locator("textarea").inputValue()==="second prompt","edit did not restore original prompt");await dialog.getByRole("button",{name:"report.txt",exact:true}).waitFor();await dialog.getByRole("button",{name:t.chatCancelEdit,exact:true}).click();await dialog.waitFor({state:"hidden"});check(await input.inputValue()==="unsent draft","cancelled edit changed composer draft");
    const countBefore=surface==="standalone"?(await (await api.get("/api/conversations")).json()).conversations.length:0;
    const sourceState=await (await api.get(path)).json();const pendingID=fixture.seedPendingApproval?await fixture.seedPendingApproval(sourceState.session,sourceState.latest_run_id,sourceState.latest_turn_id):null;
    await p.getByRole("button",{name:t.chatRetry,exact:true}).last().click();await p.getByRole("dialog").getByText(t.chatRetryEffect,{exact:true}).waitFor();await p.getByRole("dialog").getByRole("button",{name:t.chatRetry,exact:true}).click();

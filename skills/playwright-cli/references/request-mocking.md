@@ -1,5 +1,7 @@
 # Request Mocking
 
+English · [한국어](../../../docs/ko/skills/playwright-cli/references/request-mocking.md) · [简体中文](../../../docs/zh-Hans/skills/playwright-cli/references/request-mocking.md) · [繁體中文](../../../docs/zh-Hant/skills/playwright-cli/references/request-mocking.md) · [日本語](../../../docs/ja/skills/playwright-cli/references/request-mocking.md) · [Español](../../../docs/es/skills/playwright-cli/references/request-mocking.md)
+
 Intercept, mock, modify, and block network requests.
 
 ## CLI Route Commands

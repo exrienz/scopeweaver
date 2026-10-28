@@ -1,6 +1,6 @@
 # Long side conversations and context budgets
 
-[한국어](../docs/ko/sidequestion/CONTEXT_BUDGET.md)
+English · [한국어](../docs/ko/sidequestion/CONTEXT_BUDGET.md) · [简体中文](../docs/zh-Hans/sidequestion/CONTEXT_BUDGET.md) · [繁體中文](../docs/zh-Hant/sidequestion/CONTEXT_BUDGET.md) · [日本語](../docs/ja/sidequestion/CONTEXT_BUDGET.md) · [Español](../docs/es/sidequestion/CONTEXT_BUDGET.md)
 
 Historical upstream fix, 2026-09-11. The original implementation treated request JSON characters as tokens and inherited the main task's 32K output reservation. It therefore rejected valid side questions too early when HTML, JavaScript and tool results occupied much of the context.
 

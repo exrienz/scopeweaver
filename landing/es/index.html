@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ScopeWeaver — consola autoalojada para investigación de seguridad multiagente</title>
+    <meta
+      name="description"
+      content="ScopeWeaver es una consola autoalojada que coordina objetivos, agentes autónomos, alcance, cobertura y hallazgos para investigación de seguridad aislada localmente. Backend Go, Next.js integrado, PostgreSQL. Derivado de ARTEX, AGPL-3.0."
+    />
+    <link rel="canonical" href="https://cskwork.github.io/scopeweaver/es/" />
+    <link rel="alternate" hreflang="en" href="https://cskwork.github.io/scopeweaver/" />
+    <link rel="alternate" hreflang="ko" href="https://cskwork.github.io/scopeweaver/ko/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://cskwork.github.io/scopeweaver/zh-Hans/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://cskwork.github.io/scopeweaver/zh-Hant/" />
+    <link rel="alternate" hreflang="ja" href="https://cskwork.github.io/scopeweaver/ja/" />
+    <link rel="alternate" hreflang="es" href="https://cskwork.github.io/scopeweaver/es/" />
+    <link rel="alternate" hreflang="x-default" href="https://cskwork.github.io/scopeweaver/" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ScopeWeaver" />
+    <meta
+      property="og:title"
+      content="ScopeWeaver — consola autoalojada para investigación de seguridad multiagente"
+    />
+    <meta
+      property="og:description"
+      content="Coordina objetivos, agentes autónomos, alcance, cobertura y hallazgos en una consola autoalojada para investigación aislada localmente."
+    />
+    <meta property="og:url" content="https://cskwork.github.io/scopeweaver/es/" />
+    <meta property="og:image" content="https://cskwork.github.io/scopeweaver/assets/img/og-en.jpg" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link
+      rel="preload"
+      href="../assets/fonts/schibsted-grotesk-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <header class="site-header">
+      <div class="wrap site-header__inner">
+        <a class="brand" href="./" aria-label="Inicio de ScopeWeaver">
+          <img src="../assets/img/scopeweaver.svg" alt="" width="30" height="30" />
+          ScopeWeaver
+        </a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="Menú"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+
+        <nav class="primary-nav" id="primary-nav" aria-label="Principal">
+          <a href="#walkthrough">Recorrido</a>
+          <a href="#bridge">Puente de agentes</a>
+          <a href="#install">Instalar</a>
+          <a href="#requirements">Requisitos</a>
+          <a href="#limits">Límites</a>
+        </nav>
+
+        <div class="header-tools has-nav">
+          <details class="lang-switch language-menu">
+            <summary aria-label="Idioma">ES</summary>
+            <div class="language-options">
+              <a href="../" lang="en" hreflang="en">English</a>
+              <a href="../ko/" lang="ko" hreflang="ko">한국어</a>
+              <a href="../zh-Hans/" lang="zh-Hans" hreflang="zh-Hans">简体中文</a>
+              <a href="../zh-Hant/" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a>
+              <a href="../ja/" lang="ja" hreflang="ja">日本語</a>
+              <span aria-current="true">Español</span>
+            </div>
+          </details>
+          <a
+            class="ghlink"
+            href="https://github.com/cskwork/scopeweaver"
+            rel="noopener"
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="ghlink-text">GitHub</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============ HERO ============ -->
+      <section class="hero">
+        <div class="wrap hero__inner">
+          <div class="hero__lede">
+            <h1>
+              Una consola autoalojada para
+              <span class="accent">exploración de seguridad multiagente</span>.
+            </h1>
+            <p class="hero__offer">
+              ScopeWeaver coordina planificación de objetivos, agentes autónomos, alcance de activos, cobertura y hallazgos en una interfaz de revisión, diseñada para ejecutarse en tu equipo contra objetivos de laboratorio aislados localmente.
+            </p>
+            <div class="hero__actions">
+              <a
+                class="btn btn--primary"
+                href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+                </svg>
+                Descargar v0.1.0
+              </a>
+              <a class="btn btn--ghost" href="#install">Guía de configuración</a>
+            </div>
+            <p class="hero__stack">
+              <strong>Backend Go · Next.js integrado · PostgreSQL.</strong>
+              Derivado de
+              <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a>, con licencia AGPL-3.0.
+            </p>
+          </div>
+
+          <div class="hero__media">
+            <figure class="shot">
+              <div class="shot__frame">
+                <div class="shot__bar" aria-hidden="true">
+                  <i></i><i></i><i></i>
+                  <span>localhost:8787 · Panel</span>
+                </div>
+                <picture>
+                  <source
+                    media="(min-width: 700px)"
+                    srcset="../assets/img/en-dashboard-1440.webp"
+                  />
+                  <img
+                    src="../assets/img/en-dashboard-960.webp"
+                    width="1440"
+                    height="1000"
+                    alt="Panel de ScopeWeaver con tareas activas, actividad de agentes y resúmenes de cobertura en la interfaz inglesa."
+                    fetchpriority="high"
+                  />
+                </picture>
+              </div>
+              <figcaption class="demo">
+                Datos ficticios de demostración; no es un escaneo de sistemas reales.
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WALKTHROUGH ============ -->
+      <section class="section" id="walkthrough" aria-labelledby="walk-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="walk-h">Sigue una tarea por las pantallas reales</h2>
+            <p>
+              ScopeWeaver divide <em>qué es el objetivo</em> y
+              <em>hasta dónde se ha probado</em> en dos grafos vinculados: uno compartido de activos y otro de exploración por tarea. Selecciona una pantalla para ver cada etapa.
+            </p>
+          </div>
+
+          <div class="walk">
+            <div class="walk__media">
+              <figure class="tabpanel" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="0">
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>Panel</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-dashboard-1440.webp" />
+                    <img src="../assets/img/en-dashboard-960.webp" width="1440" height="1000" alt="Panel con resumen de tareas y actividad reciente de agentes." />
+                  </picture>
+                </div>
+                <figcaption class="demo">Datos ficticios de demostración; no es un escaneo de sistemas reales.</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-tasks" role="tabpanel" aria-labelledby="tab-tasks" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>Tareas</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-tasks-1440.webp" />
+                    <img src="../assets/img/en-tasks-960.webp" width="1440" height="1000" alt="Lista con estado, número de agentes y exploración por tarea." />
+                  </picture>
+                </div>
+                <figcaption class="demo">Datos ficticios de demostración; no es un escaneo de sistemas reales.</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-findings" role="tabpanel" aria-labelledby="tab-findings" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>Hallazgos</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-findings-1440.webp" />
+                    <img src="../assets/img/en-findings-960.webp" width="1440" height="1000" alt="Lista de hallazgos con pruebas registradas e informe detallado." />
+                  </picture>
+                </div>
+                <figcaption class="demo">Datos ficticios de demostración; no es un escaneo de sistemas reales.</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>Configuración del sistema</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-settings-1440.webp" />
+                    <img src="../assets/img/en-settings-960.webp" width="1440" height="1000" alt="Ajustes con concurrencia de trabajadores, versión y actualizaciones." />
+                  </picture>
+                </div>
+                <figcaption class="demo">Datos ficticios de demostración; no es un escaneo de sistemas reales.</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-llm" role="tabpanel" aria-labelledby="tab-llm" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>LLM · Nuevo</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-llm-templates-1440.webp" />
+                    <img src="../assets/img/en-llm-templates-960.webp" width="1440" height="1000" alt="Formulario LLM con plantillas de proveedor GLM-5.3." />
+                  </picture>
+                </div>
+                <figcaption class="demo">Datos ficticios de demostración; no es un escaneo de sistemas reales.</figcaption>
+              </figure>
+            </div>
+
+            <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="Pantallas del producto">
+              <button class="tab" id="tab-dashboard" role="tab" aria-selected="true" aria-controls="panel-dashboard" tabindex="0">
+                <span class="tab__title"><span class="tab__step">observar</span> Panel</span>
+                <span class="tab__desc">Tareas, agentes y actividad reciente se reúnen en un resumen para partir del estado actual del trabajo.</span>
+              </button>
+              <button class="tab" id="tab-tasks" role="tab" aria-selected="false" aria-controls="panel-tasks" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">explorar</span> Tareas</span>
+                <span class="tab__desc">El planificador lee el grafo y envía una intención cada vez; un trabajador se asigna una, ejecuta herramientas reales y registra activos, hechos y hallazgos en ambos grafos.</span>
+              </button>
+              <button class="tab" id="tab-findings" role="tab" aria-selected="false" aria-controls="panel-findings" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">revisar</span> Hallazgos</span>
+                <span class="tab__desc">Los hallazgos conservan pruebas e informe. Una persona aprueba o intercepta, y Volver a comprobar abre una sesión independiente que actualiza el estado sin reiniciar la tarea original.</span>
+              </button>
+              <button class="tab" id="tab-settings" role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">configurar</span> Configuración del sistema</span>
+                <span class="tab__desc">Establece trabajadores por tarea (tres por defecto), idioma de interfaz y controles de versión/actualización en el backend activo.</span>
+              </button>
+              <button class="tab" id="tab-llm" role="tab" aria-selected="false" aria-controls="panel-llm" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">proveedores</span> Plantillas LLM</span>
+                <span class="tab__desc">El formulario LLM → Nuevo incluye plantillas GLM-5.3. Añades tu clave API; elegir plantilla no guarda, activa ni contacta proveedores.</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AGENT BRIDGE ============ -->
+      <section class="section band-dark" id="bridge" aria-labelledby="bridge-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="bridge-h">Contrólalo desde tu agente de programación</h2>
+            <p>
+              Un adaptador local permite a Claude Code, Codex y Pi crear tareas y leer progreso, cobertura y hallazgos mediante la API autenticada de ScopeWeaver.
+            </p>
+          </div>
+
+          <div class="bridge">
+            <div class="bridge__body">
+              <p class="agent-line">
+                <strong>Es una interfaz de control, no un sustituto.</strong>
+                Conserva planificador, trabajadores y configuración internos y no convierte una suscripción de agente en clave API de modelo. Las lecturas están activadas por defecto; crear y pausar/reanudar se habilitan con
+                <code>SCOPEWEAVER_ALLOW_WRITES=true</code>.
+              </p>
+
+              <div class="agent-tabs" role="tablist" aria-label="Agente de programación">
+                <button class="agent-tab" id="at-claude" role="tab" aria-selected="true" aria-controls="ap-claude" tabindex="0">Claude Code</button>
+                <button class="agent-tab" id="at-codex" role="tab" aria-selected="false" aria-controls="ap-codex" tabindex="-1">Codex</button>
+                <button class="agent-tab" id="at-pi" role="tab" aria-selected="false" aria-controls="ap-pi" tabindex="-1">Pi</button>
+              </div>
+
+              <div class="agent-panel" id="ap-claude" role="tabpanel" aria-labelledby="at-claude" tabindex="0">
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-claude" aria-label="Copiar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">Copiar</span>
+                  </button>
+                  <code id="code-claude"><span class="tok-cmd">claude</span> mcp add <span class="tok-flag">--transport</span> stdio scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+                </div>
+              </div>
+
+              <div class="agent-panel" id="ap-codex" role="tabpanel" aria-labelledby="at-codex" tabindex="0" hidden>
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-codex" aria-label="Copiar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">Copiar</span>
+                  </button>
+                  <code id="code-codex"><span class="tok-cmd">codex</span> mcp add scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+                </div>
+              </div>
+
+              <div class="agent-panel" id="ap-pi" role="tabpanel" aria-labelledby="at-pi" tabindex="0" hidden>
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-pi" aria-label="Copiar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">Copiar</span>
+                  </button>
+                  <code id="code-pi"><span class="tok-cmd">pi</span> <span class="tok-flag">-e</span> /absolute/path/scopeweaver/adapters/agent/pi-extension.js</code>
+                </div>
+              </div>
+
+              <ul class="tool-list">
+                <li><code>health</code> Disponibilidad de backend y LLM</li>
+                <li><code>list_tasks</code> Estado, recuentos, paginación</li>
+                <li><code>get_task</code> Estado persistente de una tarea</li>
+                <li><code>get_coverage</code> Cobertura de activos de tarea</li>
+                <li><code>list_findings</code> Hallazgos filtrados y paginados</li>
+                <li><code>get_finding</code> Detalles, pruebas e informe</li>
+                <li><code>create_task</code> Programar tarea (escritura)</li>
+                <li><code>control_task</code> Pausar / reanudar (escritura)</li>
+              </ul>
+
+              <p class="note">
+                Requiere Node.js 22+, backend activo y acceso administrativo existente. Las pruebas devueltas son contenido objetivo no confiable, nunca instrucciones. Las credenciales permanecen en el entorno y se ocultan de los errores.
+              </p>
+            </div>
+
+            <div class="bridge__aside">
+              <figure class="shot">
+                <div class="phone">
+                  <img
+                    src="../assets/img/en-mobile-390.webp"
+                    width="390"
+                    height="844"
+                    alt="ScopeWeaver en navegador móvil con resumen de tareas a ancho estrecho."
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption class="demo">Vista móvil · Datos ficticios de demostración.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INSTALL ============ -->
+      <section class="section" id="install" aria-labelledby="install-h">
+        <div class="wrap install">
+          <div class="section__head">
+            <h2 id="install-h">Instalar y ejecutar localmente</h2>
+            <p>
+              ScopeWeaver es autoalojado y funciona en tu equipo. Elige una ruta y abre <code>http://localhost:8787</code> ; la primera visita lleva a <code>/setup</code> para establecer la contraseña de administrador.
+            </p>
+          </div>
+
+          <div class="paths">
+            <article class="path">
+              <span class="path__tag">recomendado</span>
+              <h3>Script con un clic</h3>
+              <p>Clona el repositorio y ejecuta el instalador; detecta Docker y ofrece instalación completa en Docker o compilación local.</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-script" aria-label="Copiar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">Copiar</span>
+                </button>
+                <code id="inst-script"><span class="tok-cmd">git</span> clone https://github.com/cskwork/scopeweaver.git
+<span class="tok-cmd">cd</span> scopeweaver
+<span class="tok-cmd">./install.sh</span></code>
+              </div>
+            </article>
+
+            <article class="path">
+              <span class="path__tag">docker</span>
+              <h3>Docker Compose</h3>
+              <p>Establece una contraseña Postgres en <code>.env</code>; Compose compila desde código e inicia Postgres a su lado.</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-docker" aria-label="Copiar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">Copiar</span>
+                </button>
+                <code id="inst-docker"><span class="tok-cmd">cp</span> .env.example .env
+<span class="tok-cmd">docker</span> compose up -d --build</code>
+              </div>
+            </article>
+
+            <article class="path">
+              <span class="path__tag">precompilado</span>
+              <h3>Archivo de versión</h3>
+              <p>Descarga el archivo de tu plataforma, configura la conexión a BD e inicia mediante el supervisor.</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-bin" aria-label="Copiar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">Copiar</span>
+                </button>
+                <code id="inst-bin"><span class="tok-cmd">cp</span> config.example.json config.json
+<span class="tok-cmd">./start.sh</span></code>
+              </div>
+              <div class="archive" aria-label="Archivos de versión">
+                <span class="chip">linux amd64</span>
+                <span class="chip">linux arm64</span>
+                <span class="chip">macos amd64</span>
+                <span class="chip">macos arm64</span>
+                <span class="chip">windows amd64</span>
+                <span class="chip">imagen docker ghcr</span>
+              </div>
+            </article>
+          </div>
+
+          <p class="hero__stack" style="margin-top:1.75rem">
+            Cada archivo incluye interfaz web integrada, supervisor, habilidades, configuración de ejemplo y adaptador de agentes.
+            <a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">Ver v0.1.0 y SHA256SUMS →</a>
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ REQUIREMENTS ============ -->
+      <section class="section" id="requirements" aria-labelledby="req-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="req-h">Qué necesitas primero</h2>
+            <p>ScopeWeaver aporta la aplicación; tú proporcionas la base de datos y un modelo.</p>
+          </div>
+          <div class="req-grid">
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3" /></svg>
+                PostgreSQL
+              </h3>
+              <p>Una BD Postgres accesible. El esquema se integra y crea idempotentemente en cada inicio.</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a7 7 0 00-4 12.7V18h8v-3.3A7 7 0 0012 2zM9 22h6M10 18v4M14 18v4" /></svg>
+                Proveedor de modelos
+              </h3>
+              <p>Un LLM configurado aparte: establece <code>ANTHROPIC_API_KEY</code> o <code>OPENAI_API_KEY</code>, o introdúcelo en la interfaz. La exploración no funciona sin uno.</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 17l6-6-6-6M12 19h8" /></svg>
+                Node.js 22+ (adaptador)
+              </h3>
+              <p>Solo para el adaptador de agentes. Instala dependencias con <code>npm ci</code> en <code>adapters/agent</code>.</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="14" rx="2" /><path d="M8 20h8M12 18v2" /></svg>
+                Un objetivo local de laboratorio
+              </h3>
+              <p>Úsalo solo contra sistemas propios o ejecutados en aislamiento. ScopeWeaver es para investigación aislada local, no pruebas en línea.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ LIMITS & CREDITS ============ -->
+      <section class="section" id="limits" aria-labelledby="limits-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="limits-h">Límites claros</h2>
+            <p>Qué es esta versión y qué no. Se puede comprobar en el repositorio.</p>
+          </div>
+
+          <div class="limits-layout">
+            <ul class="limit-list">
+              <li><strong>Solo investigación aislada local.</strong> Las restricciones heredadas prohíben escanear, sondear o atacar servicios en línea, con o sin autorización. Úsalo en sistemas propios aislados.</li>
+              <li><strong>Sin afirmaciones de producción ni eficacia.</strong> No afirma preparación para pruebas de penetración en producción ni resultados de seguridad validados independientemente.</li>
+              <li><strong>Entornos sin verificar.</strong> No se verificaron ejecución de imagen Docker ni archivos por lotes Windows. Los casos de empaquetado no son pruebas reales de ejecución Windows.</li>
+              <li><strong>Las dependencias requieren trabajo.</strong> Las actualizaciones específicas no resuelven todos los hallazgos de auditoría. Consulta la verificación para el comando actual y las limitaciones.</li>
+              <li><strong>El adaptador se prueba con casos locales.</strong> Solo prueban el contrato local de solicitud/respuesta; la ejecución real desde agente a proveedor no está verificada independientemente. Consulta <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/es/VERIFICATION.md" rel="noopener">detalles de verificación</a>.</li>
+            </ul>
+
+            <div>
+              <div class="aside-card">
+                <span class="tagline-mark">Flujo del propietario · Anonimizado</span>
+                <h3>Orquestación observada</h3>
+                <p>
+                  Observado en el espacio del propietario: crear tareas desde chat, inspeccionar trazas y actualizar progreso en coreano. Se omiten datos identificativos y hallazgos de seguridad.
+                </p>
+                <p>
+                  Demuestra orquestación, no evaluación independiente, hallazgos validados ni preparación para producción.
+                </p>
+              </div>
+
+              <div class="aside-card">
+                <h3>Procedencia y créditos</h3>
+                <p>
+                  ScopeWeaver es una obra derivada independiente de
+                  <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a>
+                  en el commit original <code>160fe13</code>, con licencia AGPL-3.0. Las capacidades de agentes usan el SDK
+                  <a href="https://github.com/Autumn-27/norma" rel="noopener">norma</a>
+                  ; la sincronización de activos se basa en
+                  <a href="https://github.com/Autumn-27/ScopeSentry" rel="noopener">ScopeSentry</a>.
+                </p>
+                <p class="credits">
+                  Las capturas muestran datos ficticios incluidos, etiquetados como demostración, no escaneos reales. Las fuentes son Schibsted Grotesk y JetBrains Mono autoalojadas (SIL Open Font License). El coreano usa la fuente Hangul del sistema del lector.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-top">
+          <a class="brand" href="./" aria-label="Inicio de ScopeWeaver">
+            <img src="../assets/img/scopeweaver.svg" alt="" width="30" height="30" />
+            ScopeWeaver
+          </a>
+          <nav class="footer-links" aria-label="Pie de página">
+            <a href="https://github.com/cskwork/scopeweaver" rel="noopener">GitHub</a>
+            <a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">Versión v0.1.0</a>
+            <a href="https://github.com/cskwork/scopeweaver/tree/main/docs" rel="noopener">Documentación</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/es/agent-adapter.md" rel="noopener">Adaptador de agentes</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/es/PROVENANCE.md" rel="noopener">Procedencia</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/es/VERIFICATION.md" rel="noopener">Verificación</a>
+          </nav>
+        </div>
+        <div class="footer-bottom">
+          <p>
+            ScopeWeaver deriva de ARTEX bajo AGPL-3.0. Las modificaciones alojadas en red deben publicar su código. Úsalo solo para estudio y validación aislados localmente.
+          </p>
+          <p>Esta página estática es una introducción, no un servicio activo de escaneo ni chat.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../assets/js/app.js" defer></script>
+  </body>
+</html>

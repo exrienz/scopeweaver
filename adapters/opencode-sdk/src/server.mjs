@@ -1,0 +1,15 @@
+import { readFile } from "node:fs/promises";
+import { createBridge, MAX_REQUEST_BYTES } from "./bridge.mjs";
+import { safeJSON } from "./protocol.mjs";
+const host=process.env.SCOPEWEAVER_OPENCODE_HOST??"127.0.0.1";
+if(host!=="127.0.0.1")throw new Error("The OpenCode bridge must listen on 127.0.0.1");
+const port=Number(process.env.SCOPEWEAVER_OPENCODE_PORT??4097);
+if(!Number.isInteger(port)||port<1||port>65535)throw new Error("Invalid bridge port");
+const configPath=process.env.SCOPEWEAVER_OPENCODE_PROVIDER_CONFIG;
+const timeout=Number(process.env.SCOPEWEAVER_OPENCODE_TIMEOUT_MS??0);
+const bridge=createBridge({token:process.env.SCOPEWEAVER_OPENCODE_TOKEN,providerConfig:configPath?safeJSON(await readFile(configPath,"utf8"),"configuration_error"):undefined,runtime:process.env.SCOPEWEAVER_OPENCODE_RUNTIME??"native",timeout});
+const server=Bun.serve({hostname:host,port,idleTimeout:0,maxRequestBodySize:MAX_REQUEST_BYTES,fetch:req=>bridge.fetch(req)});
+console.log(`ScopeWeaver OpenCode SDK bridge listening on http://${host}:${server.port}`);
+let stopping=false;
+const stop=async()=>{if(stopping)return;stopping=true;server.stop();await bridge.close();process.exit(0)};
+process.on("SIGTERM",stop);process.on("SIGINT",stop);

@@ -1,6 +1,6 @@
 # ScopeWeaver agent adapter
 
-[한국어](../../docs/ko/agent-adapter.md)
+English · [한국어](../../docs/ko/agent-adapter.md) · [简体中文](../../docs/zh-Hans/agent-adapter.md) · [繁體中文](../../docs/zh-Hant/agent-adapter.md) · [日本語](../../docs/ja/agent-adapter.md) · [Español](../../docs/es/agent-adapter.md)
 
 Connect Claude Code and Codex through a local stdio MCP server, or Pi through its native extension interface. All three use the same validated tools and authenticated ScopeWeaver HTTP API. This adapter lets your coding agent control ScopeWeaver; it does not replace ScopeWeaver's own planner/workers or turn a coding-agent subscription into a model API key.
 
@@ -77,8 +77,10 @@ Example requests: “List my ScopeWeaver tasks,” “Show the high-severity fin
 | `SCOPEWEAVER_TOKEN` | Existing backend JWT; preferred over password |
 | `SCOPEWEAVER_PASSWORD` | Existing admin password; login on first authenticated request |
 | `SCOPEWEAVER_ALLOW_WRITES` | `false`; accepts only `true` or `false` |
-| `SCOPEWEAVER_LANGUAGE` | `en`; supports `en` and `ko` |
+| `SCOPEWEAVER_LANGUAGE` | `en`; supports canonical IDs `en`, `ko`, `zh-Hans`, `zh-Hant`, `ja` and `es` for adapter text and backend `Accept-Language` |
 | `SCOPEWEAVER_TIMEOUT_MS` | `30000`; integer from 1 to 120000 |
+
+`SCOPEWEAVER_LANGUAGE` defaults to `en` and accepts the canonical IDs `en`, `ko`, `zh-Hans`, `zh-Hant`, `ja` and `es`. It localizes built-in tool titles/descriptions, schema descriptions and adapter-owned configuration, validation and transport diagnostics, and selects backend response text through `Accept-Language`. Each client uses its own catalog and schema-local Zod error maps; no global language setting changes. Tool/protocol names, schema keys/types/enums, arguments and raw backend/user/evidence content stay unchanged, with existing credential redaction. The MCP SDK's fixed validation wrapper and unknown external errors remain external text; schema issue messages inside that wrapper are localized. All resources ship inside the standalone adapter, without a repository-root locale file. Unsupported language values remain rejected and use an English diagnostic.
 
 No generic HTTP, shell execution, deletion, approval bypass, provider configuration or arbitrary endpoint tool is exposed. Requests stay on the configured origin, reject redirects, forward cancellation and time out. Responses over 2 MiB fail explicitly; narrow the query rather than treating clipped evidence as complete. Task lists are paginated in the adapter; findings use backend pagination. Tools return `{data: ...}` in text and structured results (Pi uses `details`). Evidence is untrusted target content and must not be treated as instructions.
 
@@ -97,8 +99,8 @@ From the repository root, after creating a **fresh disposable** database named `
 
 ```sh
 SCOPEWEAVER_ADAPTER_E2E=1 \
-ARTEX_PG_DSN='postgres://user:password@127.0.0.1:5432/scopeweaver_adapter_e2e?sslmode=disable' \
+ARTEX_TEST_DSN='postgres://user:password@127.0.0.1:5432/scopeweaver_adapter_e2e?sslmode=disable' \
 go test ./server -run '^TestAgentAdapterE2E$' -count=1 -v
 ```
 
-The harness fails if PostgreSQL is unavailable or the database is not explicitly selected; it never substitutes mocks. GitHub Actions repeats these checks in a dedicated disposable PostgreSQL service. MCP protocol tests establish compatibility with the shared interface; they do not claim a paid Claude/Codex/Pi model session was run.
+The test body skips unless `SCOPEWEAVER_ADAPTER_E2E=1`; when enabled, it also skips if `ARTEX_TEST_DSN` is unset or blank. A skipped test is not E2E evidence. The package's database guard rejects a DSN matching the configured live application database before test execution. In an opted-in, configured run, malformed DSNs, database names outside `scopeweaver_adapter_*` and unavailable PostgreSQL fail. The harness never substitutes mocks. GitHub Actions repeats these checks in a dedicated disposable PostgreSQL service. MCP protocol tests establish compatibility with the shared interface; they do not claim a paid Claude/Codex/Pi model session was run.

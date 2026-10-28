@@ -1,0 +1,3 @@
+{
+  "reporterToolCallMessage": "report_finding 剛登記了一項發現。從回傳的 JSON 讀取 finding_id（獨立的發現記錄）及 finding_node_id（探索節點）。使用 get_finding_traffic(finding_id) 讀取證據清單與版本；空清單仍有效，不會阻止撰寫報告。若本次執行的指引啟用了自動綁定，請先驗證並綁定此發現的流量，再讀取證據。使用 finding_node_id 讀取節點詳細資料。最後以 update_finding_report(finding_id=finding_node_id, report, evidence_version=實際讀取的版本) 儲存。evidence_version 為必填，否則報告仍會標記為過期。絕不可混用這兩種 ID 命名空間。"
+}

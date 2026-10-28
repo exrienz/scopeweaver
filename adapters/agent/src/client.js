@@ -1,22 +1,29 @@
+import { SUPPORTED_LANGUAGES, translator } from "./messages.js";
+export { SUPPORTED_LANGUAGES } from "./messages.js";
+
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 export function configFromEnv(env = process.env) {
-  const baseURL = new URL(env.SCOPEWEAVER_URL || "http://127.0.0.1:8787");
+  const requestedLanguage = env.SCOPEWEAVER_LANGUAGE || "en";
+  const t = translator(SUPPORTED_LANGUAGES.includes(requestedLanguage) ? requestedLanguage : "en");
+  let baseURL;
+  try { baseURL = new URL(env.SCOPEWEAVER_URL || "http://127.0.0.1:8787"); }
+  catch { throw new TypeError(t("config.url_invalid")); }
   const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(baseURL.hostname);
   if ((baseURL.protocol !== "https:" && !(baseURL.protocol === "http:" && loopback)) ||
       baseURL.username || baseURL.password || baseURL.search || baseURL.hash || baseURL.pathname !== "/") {
-    throw new Error("SCOPEWEAVER_URL must be an HTTPS origin or a loopback HTTP origin, without credentials or a path.");
+    throw new Error(t("config.url_origin"));
   }
-  const language = env.SCOPEWEAVER_LANGUAGE || "en";
-  if (!["en", "ko"].includes(language)) throw new Error("SCOPEWEAVER_LANGUAGE must be en or ko.");
+  const language = requestedLanguage;
+  if (!SUPPORTED_LANGUAGES.includes(language)) throw new Error(t("config.language", { languages: SUPPORTED_LANGUAGES.join(", ") }));
   const timeoutMs = Number(env.SCOPEWEAVER_TIMEOUT_MS || 30000);
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) {
-    throw new Error("SCOPEWEAVER_TIMEOUT_MS must be an integer from 1 to 120000.");
+    throw new Error(t("config.timeout"));
   }
   const token = env.SCOPEWEAVER_TOKEN || "";
-  if (/[\r\n]/.test(token)) throw new Error("SCOPEWEAVER_TOKEN must not contain line breaks.");
+  if (/[\r\n]/.test(token)) throw new Error(t("config.token"));
   if (env.SCOPEWEAVER_ALLOW_WRITES && !["true", "false"].includes(env.SCOPEWEAVER_ALLOW_WRITES)) {
-    throw new Error("SCOPEWEAVER_ALLOW_WRITES must be true or false.");
+    throw new Error(t("config.writes"));
   }
   return { baseURL, language, timeoutMs, token, password: env.SCOPEWEAVER_PASSWORD || "",
     allowWrites: env.SCOPEWEAVER_ALLOW_WRITES === "true" };
@@ -25,6 +32,7 @@ export function configFromEnv(env = process.env) {
 export class ScopeWeaverClient {
   constructor(config = configFromEnv()) {
     this.config = config;
+    this.t = translator(config.language);
     this.token = config.token;
     this.login = null;
   }
@@ -38,13 +46,13 @@ export class ScopeWeaverClient {
 
   async authenticate(signal) {
     if (this.token) return;
-    if (!this.config.password) throw new Error("Set SCOPEWEAVER_TOKEN or SCOPEWEAVER_PASSWORD to authenticate.");
+    if (!this.config.password) throw new Error(this.t("auth.required"));
     // Share a single login when an agent calls multiple read tools concurrently.
     if (!this.login) {
       this.login = this.request("/api/auth/login", {
         method: "POST", body: { username: "ARTEX", password: this.config.password }, auth: false, signal,
       }).then((result) => {
-        if (typeof result.token !== "string" || !result.token) throw new Error("ScopeWeaver login did not return a token.");
+        if (typeof result.token !== "string" || !result.token) throw new Error(this.t("auth.token_missing"));
         this.token = result.token;
       }).finally(() => { this.login = null; });
     }
@@ -52,10 +60,10 @@ export class ScopeWeaverClient {
   }
 
   async request(path, { method = "GET", body, query = {}, auth = true, signal } = {}) {
-    if (!path.startsWith("/api/")) throw new Error("Only ScopeWeaver API requests are supported.");
+    if (!path.startsWith("/api/")) throw new Error(this.t("request.path"));
     if (auth) await this.authenticate(signal);
     const url = new URL(path, this.config.baseURL);
-    if (url.origin !== this.config.baseURL.origin) throw new Error("API requests must stay on the configured origin.");
+    if (url.origin !== this.config.baseURL.origin) throw new Error(this.t("request.origin"));
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
@@ -77,21 +85,21 @@ export class ScopeWeaverClient {
           const { done, value } = await reader.read();
           if (done) break;
           length += value.byteLength;
-          if (length > MAX_RESPONSE_BYTES) throw new Error("ScopeWeaver response exceeds 2 MiB; narrow the query.");
+          if (length > MAX_RESPONSE_BYTES) throw new Error(this.t("response.oversized"));
           chunks.push(Buffer.from(value));
         }
       } finally { await reader.cancel(); }
       let result;
       try { result = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
-      catch { throw new Error(`ScopeWeaver returned a non-JSON response (HTTP ${response.status}).`); }
+      catch { throw new Error(this.t("response.non_json", { status: response.status })); }
       if (!response.ok) {
-        const hint = response.status === 401 ? " Sign in again or replace the expired token." : "";
-        const detail = typeof result?.error === "string" ? this.redact(result.error).slice(0, 500) : "Request failed";
-        throw new Error(`ScopeWeaver HTTP ${response.status}: ${detail}.${hint}`);
+        const hint = response.status === 401 ? this.t("response.http_hint") : "";
+        const detail = typeof result?.error === "string" ? this.redact(result.error).slice(0, 500) : this.t("response.failed");
+        throw new Error(this.t("response.http", { status: response.status, detail, hint }));
       }
       return result;
     } catch (error) {
-      if (combined.aborted) throw new Error(signal?.aborted ? "ScopeWeaver request cancelled." : "ScopeWeaver request timed out; check task status before retrying a write.");
+      if (combined.aborted) throw new Error(signal?.aborted ? this.t("request.cancelled") : this.t("request.timeout"));
       throw new Error(this.redact(error.message));
     }
   }

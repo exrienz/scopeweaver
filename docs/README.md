@@ -1,6 +1,6 @@
 # Documentation
 
-[한국어](ko/README.md)
+English · [한국어](ko/README.md) · [简体中文](zh-Hans/README.md) · [繁體中文](zh-Hant/README.md) · [日本語](ja/README.md) · [Español](es/README.md)
 
 - [Setup and operation](../README.md)
 - [Provenance and modifications](PROVENANCE.md)
@@ -16,4 +16,8 @@
 - [Playwright CLI guidance](../skills/playwright-cli/SKILL.md)
 - [Upstream change history](../CHANGELOG.md)
 
-English skill files remain the executable skill entries. Korean copies under `docs/ko/skills` are reference documentation and do not register additional skills. Code identifiers, commands and compatibility patterns keep their original spelling in both languages.
+English skill files remain the executable skill entries. Translated copies under `docs/{ko,zh-Hans,zh-Hant,ja,es}/skills` are reference documentation and do not register additional skills. Code identifiers, commands and compatibility patterns keep their original spelling in all six languages.
+
+- [Interface localization](../web/src/i18n/README.md)
+- [Product requirements](../PRODUCT.md)
+- [Landing design](../DESIGN.md)

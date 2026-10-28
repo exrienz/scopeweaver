@@ -4,7 +4,7 @@
 
 An LLM multi-agent autonomous penetration-testing system (Go backend + Next.js frontend)
 
-English · [한국어](README.ko.md)
+English · [한국어](README.ko.md) · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
 </div>
 
@@ -29,10 +29,12 @@ Modification date: **2026-10-02**. See [provenance and changes](docs/PROVENANCE.
 
 ## Language
 
-English is the default. Select English, Korean or Simplified Chinese (`zh-Hans`) in the interface.
+English is the default. Select English, Korean, Simplified Chinese (`zh-Hans`), Traditional Chinese
+(`zh-Hant`), Japanese (`ja`) or Spanish (`es`) in the interface.
 Bare `zh`, `zh-CN` and `zh-SG` resolve to Simplified Chinese; explicit Hans tags keep their script even
-with a Traditional region. Undeclared Traditional tags (`zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO`) fall
-through to the next preference rather than select Simplified Chinese. See the
+with a Traditional region. `zh-TW`, `zh-HK` and `zh-MO` select Traditional Chinese;
+explicit Hant tags keep their script even with a Simplified region. Japanese and Spanish regional
+tags resolve to `ja` and `es`. Unsupported languages fall through to the next preference. See the
 [contributor locale guide](web/src/i18n/README.md). The server's durable default is
 `language` in system settings; `SCOPEWEAVER_LANGUAGE` (or `ARTEX_LANGUAGE`) supplies the environment
 fallback. Operating-system `LANG` does not select the application language.
@@ -65,6 +67,27 @@ Original Chinese screenshots remain in [the screenshots directory](screenshots),
 [upstream ARTEX](https://github.com/Autumn-27/ARTEX/tree/160fe13c243be361eeac5408c40a96e824fa842c/screenshots).
 
 ---
+
+## Test scope and asset rules
+
+Company/task scope is the declared test scope: prompt-level guidance plus an asset-recording
+and coverage filter, not a network boundary. To block out-of-scope tool calls such as WebFetch
+or Bash, configure **Interception rules**. No such rules are configured by default beyond the
+built-in destructive-command rules. A real network boundary requires egress control outside
+ScopeWeaver, such as a firewall or an enforced proxy.
+
+Asset allow/block rules gate recording (`insert_assets`, `add_intent` and agent scope writes),
+not network calls. Edit task rules in **Task → Overview** and global block rules in
+**System → Intercept → Assets**. Task rules apply only inside a task; standalone chat uses
+global block rules only. Blocks take precedence over allows.
+
+**Domain (partial)** (`fuzzy_domain`) matches whole labels. Block rules match labels anywhere:
+`.gov` matches `x.gov` and `x.gov.uk`, not `a.government.com`. Allow rules match only the domain
+or its subdomains: `juice-shop.internal` allows `a.juice-shop.internal`, not
+`juice-shop.internal2` or `juice-shop.internal.attacker.com`. Existing rules may reject asset
+inserts that previously passed. Agent `add_task_scope` and worker automatic scope additions
+must pass the current asset gate; rule-read errors reject the write or skip the addition.
+Manual UI scope edits and pre-existing scope rows remain unchanged.
 
 ## Approval records
 
@@ -101,6 +124,15 @@ activate, or contact a provider. Coding Plan use is restricted to officially sup
 ScopeWeaver is not listed. See [provider setup and support limits](docs/llm-providers.md).
 To reduce cloud token use, see [Controlling token use](docs/llm-providers.md#controlling-token-use).
 
+Optional **OpenCode SDK bridge** profiles support pinned `native` CLI/client **2.1.4** (default) and
+`legacy` SDK/CLI **1.19.4**, with a separate bridge token and `providerID/modelID`. ScopeWeaver's
+Norma runtime keeps host tools and approvals. Legacy preserves safe JSON structure, allowing benign
+whitespace/escape normalization; it does not preserve original bytes and rejects unsafe integers. Both runtimes
+are unsupported on Windows. Prior runtime tests cover macOS arm64; Linux hosted CI results are pending.
+Local-only LLM mode rejects this bridge because its downstream provider may be cloud-based. See
+[SDK setup, limits and downgrade preparation](docs/llm-providers.md#opencode-sdk-bridge);
+older binaries cannot start with SDK profiles present.
+
 Optional **native Ollama** profiles run without an API key. Three templates cover Ollama on the same
 machine, on the host from Docker, and the opt-in `docker compose --profile local-llm` service. Selecting one reads installed models and prefills one, preferring declared tool support;
 it does not download or run a model. They send a 32K context (`num_ctx` 32,768), one request at a time and a 30-minute keep-alive. An opt-in
@@ -129,8 +161,9 @@ The script detects (and optionally installs) Docker, then lets you choose **① 
 Once it is up, open **http://localhost:8787** (the first visit lands on `/setup` to set the admin
 password).
 
-> The scripts speak English by default. For Korean prompts, set `SCOPEWEAVER_LANGUAGE=ko` (or
-> `ARTEX_LANGUAGE=ko`) before running, for example `SCOPEWEAVER_LANGUAGE=ko ./install.sh`.
+> Script prompts default to English. Set `SCOPEWEAVER_LANGUAGE` (or `ARTEX_LANGUAGE`) to
+> `en`, `ko`, `zh-Hans`, `zh-Hant`, `ja` or `es`, for example `SCOPEWEAVER_LANGUAGE=ko ./install.sh`.
+> Response tokens such as `y/n` and command/flag names remain unchanged.
 
 ### Option 2: Docker Compose (manual)
 
@@ -616,11 +649,11 @@ ScopeWeaver is derived from [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX
 - **Product name**: "ARTEX" → "ScopeWeaver" in the user-visible documentation, scripts, and
   distribution. The Go module (`github.com/Autumn-27/artex`), the build source path (`./cmd/artex`),
   the `ARTEX_*` config/env keys, and the `artex` database defaults are **kept** for compatibility.
-- **Documentation language**: English is the default; a Korean translation lives in
-  [README.ko.md](README.ko.md) and under [docs/ko](docs/ko/README.md).
-- **Script language**: setup/build/start/update/reset-password prompts default to English, with
-  Korean selectable via `SCOPEWEAVER_LANGUAGE=ko` (`ARTEX_LANGUAGE=ko` also works). No network
-  translation is used.
+- **Documentation language**: English is the default; maintained user/contributor guides have Korean,
+  Simplified Chinese, Traditional Chinese, Japanese and Spanish counterparts linked from each guide.
+- **Script language**: setup/build/start/update/reset-password/dev prompts default to English;
+  `SCOPEWEAVER_LANGUAGE` (`ARTEX_LANGUAGE` also works) selects `en`, `ko`, `zh-Hans`, `zh-Hant`,
+  `ja` or `es`. No network translation is used.
 - **Distribution**: the output binary is `scopeweaver`, release archives are
   `scopeweaver-<version>-<os>-<arch>.zip`, the repository is
   `https://github.com/cskwork/scopeweaver`, and container images target this repo's GHCR. Upstream's

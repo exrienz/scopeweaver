@@ -116,6 +116,21 @@ func TestAllShippedBuiltinPromptTranslations(t *testing.T) {
 	if !strings.Contains(outputLanguageInstruction(locale.ZhHans), "不得翻译") {
 		t.Fatal("Chinese raw-content boundary missing")
 	}
+	for _, lang := range locale.Languages() {
+		rendered := renderSystem("planner", plannerDefaultTmpl, PlannerVars{Goal: raw}, lang)
+		if !strings.Contains(rendered, raw) || strings.Contains(rendered, "%!") {
+			t.Fatalf("%s interpolation altered raw goal", lang)
+		}
+		instruction := outputLanguageInstruction(lang)
+		if lang != locale.En && instruction == outputLanguageInstruction(locale.En) {
+			t.Fatalf("%s output instruction fell back to English", lang)
+		}
+		for _, identifier := range []string{"URL", "JSON"} {
+			if !strings.Contains(instruction, identifier) {
+				t.Fatalf("%s output boundary lost %s", lang, identifier)
+			}
+		}
+	}
 }
 
 func TestToolMetadataAllShippedLanguagesAndReverse(t *testing.T) {

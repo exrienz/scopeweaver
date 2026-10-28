@@ -350,7 +350,7 @@ export interface WorkspaceFile {
   content?: string;
 }
 
-// A test scope entry defines the coverage denominator and authorization boundary.
+// A test scope entry defines the coverage denominator and asset-query filter.
 export interface TaskScopeRow {
   id: number;
   task_id: number;
@@ -1044,7 +1044,7 @@ export interface NotificationDelivery {
 export interface LLMProfile {
   id: string;
   name: string;
-  format: "openai" | "anthropic" | "openai-responses" | "ollama";
+  format: "openai" | "anthropic" | "openai-responses" | "ollama" | "opencode-sdk";
   base_url?: string;
   proxy?: string;
   model: string;

@@ -1,6 +1,6 @@
 # 추적
 
-[English](../../../../../skills/playwright-cli/references/tracing.md)
+[English](../../../../../skills/playwright-cli/references/tracing.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/tracing.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/tracing.md) · [日本語](../../../../ja/skills/playwright-cli/references/tracing.md) · [Español](../../../../es/skills/playwright-cli/references/tracing.md)
 
 디버깅/분석용 상세 실행 기록을 수집합니다. DOM 스냅샷, 스크린샷, 네트워크 활동, 콘솔 로그가 포함됩니다.
 

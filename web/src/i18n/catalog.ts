@@ -4,14 +4,16 @@
 // compile error; i18n.test.mjs additionally checks placeholder/tag parity.
 
 import { LOCALES, type Locale } from "./config.ts";
-import * as zhHans from "./messages/zh-Hans.ts";
-
-import * as providers from "./messages/providers.ts";
 import * as app from "./messages/app.ts";
-import * as interfaceMessages from "./messages/interface.ts";
-import * as english from "./messages/english.ts";
-import * as settings from "./messages/settings.ts";
 import * as common from "./messages/common.ts";
+import * as english from "./messages/english.ts";
+import * as es from "./messages/es.ts";
+import * as interfaceMessages from "./messages/interface.ts";
+import * as ja from "./messages/ja.ts";
+import * as providers from "./messages/providers.ts";
+import * as settings from "./messages/settings.ts";
+import * as zhHans from "./messages/zh-hans.ts";
+import * as zhHant from "./messages/zh-hant.ts";
 
 const namespaces = {
   providers,
@@ -42,6 +44,9 @@ const resources = {
   en: namespaceTables("en"),
   ko: namespaceTables("ko"),
   "zh-Hans": zhHans,
+  "zh-Hant": zhHant,
+  ja,
+  es,
 } satisfies Record<Locale, NamespaceCatalogs>;
 
 export const catalogLocales = Object.keys(resources);
@@ -54,6 +59,9 @@ function flatten(locale: Locale): Catalog {
   return out as Catalog;
 }
 
-export const catalogs = Object.fromEntries(LOCALES.map((locale) => [locale, flatten(locale)])) as Record<Locale, Catalog>;
+export const catalogs = Object.fromEntries(LOCALES.map((locale) => [locale, flatten(locale)])) as Record<
+  Locale,
+  Catalog
+>;
 
 export const namespaceNames = Object.keys(namespaces);

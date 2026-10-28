@@ -2,7 +2,7 @@
 /* Integrity check for the ScopeWeaver landing page.
    Lives outside landing/ so it is never published. Verifies that every
    referenced asset exists, that relative paths resolve under /scopeweaver/
-   and /scopeweaver/ko/, that EN/KO structural parity holds, and that no
+   and each locale subdirectory, that six-language structural parity holds, and that no
    planning/seed/contract metadata leaked into the shipped folder. */
 
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
@@ -24,10 +24,11 @@ const ok = (m) => {
 };
 
 /* --- 1. Referenced assets resolve relative to each HTML file --- */
-const pages = [
-  { file: join(landing, "index.html"), base: landing, lang: "en" },
-  { file: join(landing, "ko", "index.html"), base: join(landing, "ko"), lang: "ko" },
-];
+const locales = JSON.parse(readFileSync(join(root, "locale", "definitions.json"), "utf8")).locales;
+const pages = locales.map(({id: lang}) => {
+  const base = lang === "en" ? landing : join(landing, lang);
+  return { file: join(base, "index.html"), base, lang };
+});
 
 const attrRe = /(?:src|href)="([^"#?][^"]*)"|srcset="([^"]+)"/g;
 
@@ -69,46 +70,51 @@ for (const { file, base, lang } of pages) {
   else ok(`${lang}: no absolute root asset paths`);
 }
 
-/* --- 2. EN/KO parity on structural anchors and controls --- */
+/* --- 2. Every shipped language has the English structure and cross-links --- */
 const en = readFileSync(join(landing, "index.html"), "utf8");
-const ko = readFileSync(join(landing, "ko", "index.html"), "utf8");
-
-const ids = (s) =>
-  [...s.matchAll(/\bid="([^"]+)"/g)].map((x) => x[1]).sort();
-const enIds = ids(en);
-const koIds = ids(ko);
-const missingInKo = enIds.filter((i) => !koIds.includes(i));
-const missingInEn = koIds.filter((i) => !enIds.includes(i));
-if (missingInKo.length || missingInEn.length) {
-  fail(`id parity mismatch: ko-missing=[${missingInKo}] en-missing=[${missingInEn}]`);
-} else ok(`EN/KO id parity (${enIds.length} ids each)`);
-
-const countRole = (s, role) =>
-  (s.match(new RegExp(`role="${role}"`, "g")) || []).length;
-for (const role of ["tab", "tabpanel", "tablist"]) {
-  if (countRole(en, role) !== countRole(ko, role))
-    fail(`${role} count differs EN(${countRole(en, role)}) KO(${countRole(ko, role)})`);
-  else ok(`EN/KO ${role} count matches (${countRole(en, role)})`);
+const ids = html => [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]).sort();
+const countRole = (html, role) => (html.match(new RegExp(`role="${role}"`, "g")) || []).length;
+for (const { file, lang } of pages) {
+  if (!existsSync(file)) continue; // Missing pages were already reported above.
+  const html = readFileSync(file, "utf8");
+  if (JSON.stringify(ids(html)) !== JSON.stringify(ids(en))) fail(`${lang}: structural id parity mismatch`);
+  else ok(`${lang}: English id parity (${ids(en).length} ids)`);
+  for (const role of ["tab", "tabpanel", "tablist"]) {
+    if (countRole(html, role) !== countRole(en, role)) fail(`${lang}: ${role} count differs from English`);
+    else ok(`${lang}: ${role} count matches (${countRole(en, role)})`);
+  }
+  const copies = value => (value.match(/class="copy-btn"/g) || []).length;
+  if (copies(html) !== copies(en)) fail(`${lang}: copy-btn count differs from English`);
+  else ok(`${lang}: copy-btn count matches (${copies(en)})`);
+  for (const { id: other } of locales) {
+    if (other === lang) continue;
+    const href = lang === "en" ? `${other}/` : other === "en" ? "../" : `../${other}/`;
+    if (!html.includes(`href="${href}"`) && !html.includes(`href="${href}index.html"`)) fail(`${lang}: missing language link to ${other}`);
+    else ok(`${lang}: links to ${other}`);
+    const canonical = `https://cskwork.github.io/scopeweaver/${other === "en" ? "" : `${other}/`}`;
+    if (!html.includes(`hreflang="${other}" href="${canonical}"`)) fail(`${lang}: missing alternate metadata for ${other}`);
+  }
+  const figures = (html.match(/<figure/g) || []).length;
+  const captions = (html.match(/figcaption class="demo"/g) || []).length;
+  if (captions < figures) fail(`${lang}: ${figures} figures but only ${captions} demo captions`);
+  else ok(`${lang}: ${captions} demo captions for ${figures} figures`);
 }
 
-const copyEn = (en.match(/class="copy-btn"/g) || []).length;
-const copyKo = (ko.match(/class="copy-btn"/g) || []).length;
-if (copyEn !== copyKo) fail(`copy-btn count differs EN(${copyEn}) KO(${copyKo})`);
-else ok(`EN/KO copy-btn count matches (${copyEn})`);
-
-// language cross-links
-if (!/href="ko\/"/.test(en)) fail("EN page missing link to ko/");
-else ok("EN links to ko/");
-if (!/href="\.\.\/"/.test(ko)) fail("KO page missing link to ../ (EN)");
-else ok("KO links to ../ (EN)");
-
-/* --- 3. Every screenshot figure carries a demo caption --- */
-for (const [name, s] of [["en", en], ["ko", ko]]) {
-  const figs = (s.match(/<figure/g) || []).length;
-  const caps = (s.match(/figcaption class="demo"/g) || []).length;
-  if (caps < figs)
-    fail(`${name}: ${figs} figures but only ${caps} demo captions`);
-  else ok(`${name}: ${caps} demo captions for ${figs} figures`);
+/* --- 3. Copy buttons preserve executable source commands, including casing --- */
+function copiedCodeChanges(source, translated) {
+  const codeById = html => new Map([...html.matchAll(/<code\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/code>/g)].map(([, id, body]) => [id, body.replace(/<[^>]*>/g, "")]));
+  const expected = codeById(source);
+  const actual = codeById(translated);
+  return [...source.matchAll(/data-copy-target="#([^"]+)"/g)].map(([, id]) => id).filter(id => !expected.has(id) || actual.get(id) !== expected.get(id));
+}
+const copiedFixture = '<button data-copy-target="#inst-docker"></button><code id="inst-docker">docker compose up -d --build</code>';
+if (copiedCodeChanges(copiedFixture, copiedFixture.replace("docker compose", "Docker compose")).join() !== "inst-docker") fail("copied-command guard accepted altered Docker casing fixture");
+else ok("copied-command guard rejects altered Docker casing fixture");
+for (const { file, lang } of pages) {
+  if (!existsSync(file)) continue;
+  const changed = copiedCodeChanges(en, readFileSync(file, "utf8"));
+  if (changed.length) fail(`${lang}: copied command text differs from English: ${changed.join(", ")}`);
+  else ok(`${lang}: copied commands preserve English source literals and casing`);
 }
 
 /* --- 4. No planning/seed/contract metadata shipped in landing/ --- */

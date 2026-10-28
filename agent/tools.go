@@ -7,6 +7,7 @@ import (
 	"github.com/Autumn-27/artex/locale"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/Autumn-27/artex/db"
 	acperm "github.com/Autumn-27/norma/permission"
@@ -69,9 +70,11 @@ type ToolSet struct {
 	// touches get anchored to it as lineage/provenance (NOT visibility — the asset
 	// graph is global and shared). Worker = its claimed intent; planner = begin root.
 	ownerNode int64
-	GoalMet   bool
-	Reason    string
-	writes    WriteCounts
+	// goalMu protects terminal tool writes and the planner's cancellation snapshot.
+	goalMu  sync.Mutex
+	GoalMet bool
+	Reason  string
+	writes  WriteCounts
 	// killWork, if set, terminates a running work by intent id (engine callback,
 	// wired by the planner). nil = the kill_work tool reports unavailable.
 	killWork func(intentID int64) error
@@ -103,6 +106,10 @@ type ToolSet struct {
 	// goals decomposer (round-0 has no running planner to inform) and workers → those
 	// fall back to the bare notify.
 	notifyGoal func(texts []string)
+	// terminalProof, when armed by prove_goal's all-goals-met branch or the opt-in
+	// goal_met tool, stops the NEXT upstream model call of this session at the
+	// verified Deps boundary (see terminal_proof.go). Never cancelled mid-turn.
+	terminalProof terminalProof
 	// notifyHint wakes the planner and records one trigger for the batch of strategic hints.
 	// trigger for a whole add_hint call (batch-aware — one call, one trigger) so the next
 	// round is told the round was fired by a new hint and spells the hint out, instead of
@@ -329,10 +336,46 @@ func (t *ToolSet) writeExpTool(name, desc string, schema map[string]any, run fun
 func (t *ToolSet) needExploration(name string, run func(context.Context, json.RawMessage) (actool.Result, error)) func(context.Context, json.RawMessage) (actool.Result, error) {
 	return func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 		if t.ts == nil {
-			return actool.Errorf(name + locale.Text(locale.FromContext(ctx), " requires task context (exploration graph). This agent is not running inside a task, so the tool is unavailable. Use it within a task or use cross-task tools with task_id, such as get_task_node_detail/list_task_findings/get_task_graph.")), nil
+			return t.refuseOutsideTask(ctx, name), nil
 		}
 		return run(ctx, in)
 	}
+}
+
+// toolUseIDOf safely reads the per-call tool_use identity (nil-safe for direct
+// invocations such as catalog seeding, which pass no ToolContext; the empty ID
+// leaves a terminal proof unattributed and never gating inference).
+func toolUseIDOf(tc *actool.ToolContext) string {
+	if tc == nil {
+		return ""
+	}
+	return tc.ToolUseID
+}
+
+// refuseOutsideTask is the shared no-exploration-store refusal (see needExploration).
+func (t *ToolSet) refuseOutsideTask(ctx context.Context, name string) actool.Result {
+	return actool.Errorf(name + locale.Text(locale.FromContext(ctx), " requires task context (exploration graph). This agent is not running inside a task, so the tool is unavailable. Use it within a task or use cross-task tools with task_id, such as get_task_node_detail/list_task_findings/get_task_graph."))
+}
+
+// writeToolTC / writeExpToolTC mirror writeTool / writeExpTool but hand the
+// handler the per-call ToolContext. prove_goal and goal_met need tc.ToolUseID to
+// bind the terminal-proof gate to the tool_use's ORIGINATING model call
+// (terminal_proof.go); every other tool keeps the simpler signature.
+func writeToolTC(name, desc string, schema map[string]any, run func(context.Context, json.RawMessage, *actool.ToolContext) (actool.Result, error)) actool.CoreTool {
+	return actool.Build(actool.Spec{
+		Name: name, Description: desc, Schema: schema,
+		Permissions: func(context.Context, json.RawMessage, acperm.Context) acperm.Decision { return acperm.Allowed() },
+		Run:         run,
+	})
+}
+
+func (t *ToolSet) writeExpToolTC(name, desc string, schema map[string]any, run func(context.Context, json.RawMessage, *actool.ToolContext) (actool.Result, error)) actool.CoreTool {
+	return writeToolTC(name, desc, schema, func(ctx context.Context, in json.RawMessage, tc *actool.ToolContext) (actool.Result, error) {
+		if t.ts == nil {
+			return t.refuseOutsideTask(ctx, name), nil
+		}
+		return run(ctx, in, tc)
+	})
 }
 
 func jsonResult(v any) (actool.Result, error) {
@@ -1099,7 +1142,12 @@ func (t *ToolSet) addIntent() actool.CoreTool {
 	return t.writeExpTool("add_intent", locale.Text(t.language, "Create exploration directions in the frontier and link them into the exploration graph. Intents are open-ended: describe what to explore/verify/exploit in one summary sentence.\n")+
 		locale.Text(t.language, "Prefer batching: submit this round's new directions together in intents. Returned ids match input length/order; failed items have id=0 and details in errors. For one item, omit intents and provide top-level summary."),
 		obj(map[string]any{
-			"intents":    map[string]any{"type": "array", "description": locale.Text(t.language, "Preferred: new directions processed in order. Each item uses summary/asset_ids/parent_ids/priority. Returned ids match input length/order."), "items": map[string]any{"type": "object"}},
+			"intents": map[string]any{"type": "array", "description": locale.Text(t.language, "Preferred: new directions processed in order. Each item uses summary/asset_ids/parent_ids/priority. Returned ids match input length/order."), "items": obj(map[string]any{
+				"summary":    str(locale.Text(t.language, "One sentence describing what to do and why. A clear direction does not require an asset ID.")),
+				"asset_ids":  map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": locale.Text(t.language, "Target asset IDs from list_assets, not exploration node IDs (zero/one/many).")},
+				"parent_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": locale.Text(t.language, "Optional upstream anchors (zero/one/many): existing confirmed fact/finding node IDs supporting this direction. Never use intent/goal/hint IDs; leave empty for a new top-level direction.")},
+				"priority":   intp(locale.Text(t.language, "Priority 0-10, default 5")),
+			}, "summary")},
 			"summary":    str(locale.Text(t.language, "Single item: one sentence describing what to do and why. A clear direction does not require an asset ID.")),
 			"asset_ids":  map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": locale.Text(t.language, "Target asset IDs from list_assets, not exploration node IDs (zero/one/many). Include IDs whenever the direction targets concrete sites/endpoints/parameters/hosts: they identify targets, support coverage deduplication, and connect asset lineage. Leave empty only for global reconnaissance with no concrete asset.")},
 			"parent_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "description": locale.Text(t.language, "Optional upstream anchors (zero/one/many): existing confirmed fact/finding node IDs supporting this direction. Never use intent/goal/hint IDs. Include all combined facts. Leave empty for new top-level reconnaissance; it attaches automatically to the task's origin fact.")},
@@ -1162,13 +1210,13 @@ func (t *ToolSet) listGoals() actool.CoreTool {
 }
 
 func (t *ToolSet) proveGoal() actool.CoreTool {
-	return t.writeExpTool("prove_goal", locale.Text(t.language, "Call when a finding/fact proves an objective: link the evidence node to the goal and mark it met."),
+	return t.writeExpToolTC("prove_goal", locale.Text(t.language, "Call when a finding/fact proves an objective: link the evidence node to the goal and mark it met."),
 		obj(map[string]any{
 			"goal_id":     idp(locale.Text(t.language, "Goal node ID")),
 			"evidence_id": idp(locale.Text(t.language, "Finding/fact node ID proving the goal")),
 			"reason":      str(locale.Text(t.language, "Why this evidence satisfies the objective")),
 		}, "goal_id", "evidence_id"),
-		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
+		func(ctx context.Context, in json.RawMessage, tc *actool.ToolContext) (actool.Result, error) {
 			var a struct {
 				GoalID     json.RawMessage `json:"goal_id"`
 				EvidenceID json.RawMessage `json:"evidence_id"`
@@ -1200,8 +1248,8 @@ func (t *ToolSet) proveGoal() actool.CoreTool {
 					}
 				}
 				if allMet {
-					t.GoalMet = true
-					t.Reason = fmt.Sprintf(locale.Text(locale.FromContext(ctx), "All %d goals are met (last triggered by goal %d)"), len(goals), goal)
+					t.markGoalMet(fmt.Sprintf(locale.Text(locale.FromContext(ctx), "All %d goals are met (last triggered by goal %d)"), len(goals), goal))
+					t.markTerminalProof(toolUseIDOf(tc)) // bind to the ORIGINATING call (terminal_proof.go)
 					return actool.Text(fmt.Sprintf(locale.Text(locale.FromContext(ctx), "goal %d marked met; all task objectives are achieved and the task completes automatically"), goal)), nil
 				}
 			}
@@ -1209,14 +1257,26 @@ func (t *ToolSet) proveGoal() actool.CoreTool {
 		})
 }
 
+func (t *ToolSet) markGoalMet(reason string) {
+	t.goalMu.Lock()
+	defer t.goalMu.Unlock()
+	t.GoalMet, t.Reason = true, reason
+}
+
+func (t *ToolSet) goalResult() (bool, string) {
+	t.goalMu.Lock()
+	defer t.goalMu.Unlock()
+	return t.GoalMet, t.Reason
+}
+
 func (t *ToolSet) goalMet() actool.CoreTool {
-	return writeTool("goal_met", locale.Text(t.language, "End the ENTIRE task immediately only when ALL objectives are truly achieved. One objective/flag/vulnerability alone is insufficient; use prove_goal for that goal instead. This is NOT for ending a planning round: no new intents or waiting for workers means simply end the round without calling this tool; zero intents can be normal. Prefer proving goals individually with prove_goal. goal_met bypasses individual proof to close the whole engagement."),
+	return writeToolTC("goal_met", locale.Text(t.language, "End the ENTIRE task immediately only when ALL objectives are truly achieved. One objective/flag/vulnerability alone is insufficient; use prove_goal for that goal instead. This is NOT for ending a planning round: no new intents or waiting for workers means simply end the round without calling this tool; zero intents can be normal. Prefer proving goals individually with prove_goal. goal_met bypasses individual proof to close the whole engagement."),
 		obj(map[string]any{"reason": str(locale.Text(t.language, "Evidence that the objective was genuinely achieved, not a reason to end this round such as no new directions"))}, "reason"),
-		func(_ context.Context, in json.RawMessage) (actool.Result, error) {
+		func(_ context.Context, in json.RawMessage, tc *actool.ToolContext) (actool.Result, error) {
 			var a struct{ Reason string }
 			_ = json.Unmarshal(in, &a)
-			t.GoalMet = true
-			t.Reason = a.Reason
+			t.markGoalMet(a.Reason)
+			t.markTerminalProof(toolUseIDOf(tc)) // bind to the ORIGINATING call (terminal_proof.go)
 			return actool.Text("acknowledged: goal marked met"), nil
 		})
 }

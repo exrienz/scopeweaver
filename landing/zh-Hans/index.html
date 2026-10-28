@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ScopeWeaver — 自行托管的多智能体安全研究控制台</title>
+    <meta
+      name="description"
+      content="ScopeWeaver 是自行托管的控制台，协调目标规划、自主智能体、资产范围、覆盖率与发现记录，仅供本地隔离安全研究。Go 后端、内嵌 Next.js、PostgreSQL。衍生自 ARTEX，依 AGPL-3.0 授权。"
+    />
+    <link rel="canonical" href="https://cskwork.github.io/scopeweaver/zh-Hans/" />
+    <link rel="alternate" hreflang="en" href="https://cskwork.github.io/scopeweaver/" />
+    <link rel="alternate" hreflang="ko" href="https://cskwork.github.io/scopeweaver/ko/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://cskwork.github.io/scopeweaver/zh-Hans/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://cskwork.github.io/scopeweaver/zh-Hant/" />
+    <link rel="alternate" hreflang="ja" href="https://cskwork.github.io/scopeweaver/ja/" />
+    <link rel="alternate" hreflang="es" href="https://cskwork.github.io/scopeweaver/es/" />
+    <link rel="alternate" hreflang="x-default" href="https://cskwork.github.io/scopeweaver/" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ScopeWeaver" />
+    <meta
+      property="og:title"
+      content="ScopeWeaver — 自行托管的多智能体安全研究控制台"
+    />
+    <meta
+      property="og:description"
+      content="在同一自行托管的控制台中协调目标规划、自主智能体、资产范围、覆盖率与发现记录，仅供本地隔离研究。"
+    />
+    <meta property="og:url" content="https://cskwork.github.io/scopeweaver/zh-Hans/" />
+    <meta property="og:image" content="https://cskwork.github.io/scopeweaver/assets/img/og-en.jpg" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link
+      rel="preload"
+      href="../assets/fonts/schibsted-grotesk-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="../assets/css/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳至内容</a>
+
+    <header class="site-header">
+      <div class="wrap site-header__inner">
+        <a class="brand" href=".././" aria-label="ScopeWeaver 首页">
+          <img src="../assets/img/scopeweaver.svg" alt="" width="30" height="30" />
+          ScopeWeaver
+        </a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="选单"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+
+        <nav class="primary-nav" id="primary-nav" aria-label="主要导览">
+          <a href="#walkthrough">操作导览</a>
+          <a href="#bridge">智能体桥接</a>
+          <a href="#install">安装</a>
+          <a href="#requirements">需求</a>
+          <a href="#limits">限制</a>
+        </nav>
+
+        <div class="header-tools has-nav">
+          <details class="lang-switch language-menu">
+            <summary aria-label="语言">简体</summary>
+            <div class="language-options">
+              <a href="../index.html" lang="en" hreflang="en">English</a>
+              <a href="../ko/" lang="ko" hreflang="ko">한국어</a>
+              <span aria-current="page">简体中文</span>
+              <a href="../zh-Hant/" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a>
+              <a href="../ja/" lang="ja" hreflang="ja">日本語</a>
+              <a href="../es/" lang="es" hreflang="es">Español</a>
+            </div>
+          </details>
+          <a
+            class="ghlink"
+            href="https://github.com/cskwork/scopeweaver"
+            rel="noopener"
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span class="ghlink-text">GitHub</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============ HERO ============ -->
+      <section class="hero">
+        <div class="wrap hero__inner">
+          <div class="hero__lede">
+            <h1>自行托管的控制台，协调<span class="accent">多智能体安全探索</span>.
+            </h1>
+            <p class="hero__offer">ScopeWeaver 在同一审查界面中协调目标规划、自主智能体、资产范围、覆盖率与已记录的发现；在您自己的电脑上运行，仅适用于本地隔离的实验室目标。</p>
+            <div class="hero__actions">
+              <a
+                class="btn btn--primary"
+                href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0"
+                rel="noopener"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+                </svg>下载 v0.1.0</a>
+              <a class="btn btn--ghost" href="#install">配置指南</a>
+            </div>
+            <p class="hero__stack">
+              <strong>Go 后端 · 内嵌 Next.js · PostgreSQL。</strong>衍生自 <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a>，依 AGPL-3.0 授权。</p>
+          </div>
+
+          <div class="hero__media">
+            <figure class="shot">
+              <div class="shot__frame">
+                <div class="shot__bar" aria-hidden="true">
+                  <i></i><i></i><i></i>
+                  <span>localhost:8787 · 仪表板</span>
+                </div>
+                <picture>
+                  <source
+                    media="(min-width: 700px)"
+                    srcset="../assets/img/en-dashboard-1440.webp"
+                  />
+                  <img
+                    src="../assets/img/en-dashboard-960.webp"
+                    width="1440"
+                    height="1000"
+                    alt="英文界面的 ScopeWeaver 仪表板，显示运行中任务、智能体活动与覆盖率摘要。"
+                    fetchpriority="high"
+                  />
+                </picture>
+              </div>
+              <figcaption class="demo">虚构示范数据，并非任何真实系统的扫描。</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WALKTHROUGH ============ -->
+      <section class="section" id="walkthrough" aria-labelledby="walk-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="walk-h">通过实际画面走完一项任务</h2>
+            <p>ScopeWeaver 将<em>目标是什么</em>与<em>已测试到哪里</em>分为两张相连的图：共用资产图及各任务的探索图。选取画面，即可查看各阶段的位置。</p>
+          </div>
+
+          <div class="walk">
+            <div class="walk__media">
+              <figure class="tabpanel" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" tabindex="0">
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>仪表板</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-dashboard-1440.webp" />
+                    <img src="../assets/img/en-dashboard-960.webp" width="1440" height="1000" alt="仪表板，显示任务概览与近期智能体活动。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虚构示范数据，并非任何真实系统的扫描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-tasks" role="tabpanel" aria-labelledby="tab-tasks" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>任务</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-tasks-1440.webp" />
+                    <img src="../assets/img/en-tasks-960.webp" width="1440" height="1000" alt="任务清单，显示状态、智能体数量与各任务探索检视。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虚构示范数据，并非任何真实系统的扫描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-findings" role="tabpanel" aria-labelledby="tab-findings" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>发现</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-findings-1440.webp" />
+                    <img src="../assets/img/en-findings-960.webp" width="1440" height="1000" alt="发现清单，包含已记录的证据与报告详情。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虚构示范数据，并非任何真实系统的扫描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>系统配置</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-settings-1440.webp" />
+                    <img src="../assets/img/en-settings-960.webp" width="1440" height="1000" alt="系统配置，包含工作智能体并行数、版本与更新。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虚构示范数据，并非任何真实系统的扫描。</figcaption>
+              </figure>
+
+              <figure class="tabpanel" id="panel-llm" role="tabpanel" aria-labelledby="tab-llm" tabindex="0" hidden>
+                <div class="shot__frame">
+                  <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>LLM · 新增</span></div>
+                  <picture>
+                    <source media="(min-width: 700px)" srcset="../assets/img/en-llm-templates-1440.webp" />
+                    <img src="../assets/img/en-llm-templates-960.webp" width="1440" height="1000" alt="LLM 配置表单，内含 GLM-5.3 供应商模板。" />
+                  </picture>
+                </div>
+                <figcaption class="demo">虚构示范数据，并非任何真实系统的扫描。</figcaption>
+              </figure>
+            </div>
+
+            <div class="tablist" role="tablist" aria-orientation="vertical" aria-label="产品画面">
+              <button class="tab" id="tab-dashboard" role="tab" aria-selected="true" aria-controls="panel-dashboard" tabindex="0">
+                <span class="tab__title"><span class="tab__step">概览</span> 仪表板</span>
+                <span class="tab__desc">每项任务、其智能体与近期活动集中于同一概览，让您从目前工作状态开始。</span>
+              </button>
+              <button class="tab" id="tab-tasks" role="tab" aria-selected="false" aria-controls="panel-tasks" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">探索</span> 任务</span>
+                <span class="tab__desc">规划器读取探索图，每次派发一个意图；工作智能体领取单一意图，运行真实工具，再将新资产、事实与发现写回两张图。</span>
+              </button>
+              <button class="tab" id="tab-findings" role="tab" aria-selected="false" aria-controls="panel-findings" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">审查</span> 发现</span>
+                <span class="tab__desc">发现保留其证据与报告。人员可审批或拦截；「复测」分页运行独立复测会话，更新发现状态，而无须重启原任务。</span>
+              </button>
+              <button class="tab" id="tab-settings" role="tab" aria-selected="false" aria-controls="panel-settings" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">配置</span> 系统配置</span>
+                <span class="tab__desc">在运行中的后端配置每个任务的工作智能体数量（默认三个）、界面语言，以及应用程序内版本与更新控制。</span>
+              </button>
+              <button class="tab" id="tab-llm" role="tab" aria-selected="false" aria-controls="panel-llm" tabindex="-1">
+                <span class="tab__title"><span class="tab__step">供应商</span> LLM 模板</span>
+                <span class="tab__desc">「LLM → 新增」表单内附 GLM-5.3 配置模板。请自行加入 API 密钥；选取模板不会保存、启用或联络任何供应商。</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ AGENT BRIDGE ============ -->
+      <section class="section band-dark" id="bridge" aria-labelledby="bridge-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="bridge-h">通过编程智能体操作</h2>
+            <p>本地适配器让 Claude Code、Codex 与 Pi 通过 ScopeWeaver 自身的已验证 API，创建任务并读取进度、覆盖率与发现。</p>
+          </div>
+
+          <div class="bridge">
+            <div class="bridge__body">
+              <p class="agent-line">
+                <strong>这是控制界面，并不取代内部智能体。</strong>适配器保留 ScopeWeaver 内部的规划器、工作智能体和模型配置，也不会将编程智能体订阅转换为模型 API 密钥。默认允许读取；如需创建任务和暂停／继续任务，请显式启用 <code>SCOPEWEAVER_ALLOW_WRITES=true</code>。
+              </p>
+
+              <div class="agent-tabs" role="tablist" aria-label="编程智能体">
+                <button class="agent-tab" id="at-claude" role="tab" aria-selected="true" aria-controls="ap-claude" tabindex="0">Claude Code</button>
+                <button class="agent-tab" id="at-codex" role="tab" aria-selected="false" aria-controls="ap-codex" tabindex="-1">Codex</button>
+                <button class="agent-tab" id="at-pi" role="tab" aria-selected="false" aria-controls="ap-pi" tabindex="-1">Pi</button>
+              </div>
+
+              <div class="agent-panel" id="ap-claude" role="tabpanel" aria-labelledby="at-claude" tabindex="0">
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-claude" aria-label="复制">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">复制</span>
+                  </button>
+                  <code id="code-claude"><span class="tok-cmd">claude</span> mcp add <span class="tok-flag">--transport</span> stdio scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+                </div>
+              </div>
+
+              <div class="agent-panel" id="ap-codex" role="tabpanel" aria-labelledby="at-codex" tabindex="0" hidden>
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-codex" aria-label="复制">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">复制</span>
+                  </button>
+                  <code id="code-codex"><span class="tok-cmd">codex</span> mcp add scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+                </div>
+              </div>
+
+              <div class="agent-panel" id="ap-pi" role="tabpanel" aria-labelledby="at-pi" tabindex="0" hidden>
+                <div class="codeblock">
+                  <button class="copy-btn" type="button" data-copy-target="#code-pi" aria-label="复制">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                    <span class="copy-btn__text">复制</span>
+                  </button>
+                  <code id="code-pi"><span class="tok-cmd">pi</span> <span class="tok-flag">-e</span> /absolute/path/scopeweaver/adapters/agent/pi-extension.js</code>
+                </div>
+              </div>
+
+              <ul class="tool-list">
+                <li><code>health</code> 后端和 LLM 的就绪状态</li>
+                <li><code>list_tasks</code> 状态、数量和分页</li>
+                <li><code>get_task</code> 单个任务的持久化状态</li>
+                <li><code>get_coverage</code> 任务资产覆盖率</li>
+                <li><code>list_findings</code> 筛选并分页后的发现</li>
+                <li><code>get_finding</code> 详情、证据和报告</li>
+                <li><code>create_task</code> 调度任务（写入操作）</li>
+                <li><code>control_task</code> 暂停／继续（写入操作）</li>
+              </ul>
+
+              <p class="note">需要 Node.js 22+、运行中的后端与既有管理员登录。工具传回的证据为不受信任的目标内容，绝不能视为指示。凭证保留在您的环境中，错误消息会遮蔽凭证。</p>
+            </div>
+
+            <div class="bridge__aside">
+              <figure class="shot">
+                <div class="phone">
+                  <img
+                    src="../assets/img/en-mobile-390.webp"
+                    width="390"
+                    height="844"
+                    alt="ScopeWeaver 在行动浏览器中运行，以窄版呈现任务概览。"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption class="demo">移动版检视 · 虚构示范数据。</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ INSTALL ============ -->
+      <section class="section" id="install" aria-labelledby="install-h">
+        <div class="wrap install">
+          <div class="section__head">
+            <h2 id="install-h">安装并在本地运行</h2>
+            <p>ScopeWeaver 由您自行托管，在您的电脑上运行。选择安装方式后，打开 <code>http://localhost:8787</code>；首次访问会进入 <code>/setup</code>，以设置管理员密码。</p>
+          </div>
+
+          <div class="paths">
+            <article class="path">
+              <span class="path__tag">建议</span>
+              <h3>一键脚本</h3>
+              <p>复制仓库并运行安装程序；它会侦测 Docker，提供全 Docker 或本地构建选项。</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-script" aria-label="复制">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">复制</span>
+                </button>
+                <code id="inst-script"><span class="tok-cmd">git</span> clone https://github.com/cskwork/scopeweaver.git
+<span class="tok-cmd">cd</span> scopeweaver
+<span class="tok-cmd">./install.sh</span></code>
+              </div>
+            </article>
+
+            <article class="path">
+              <span class="path__tag">Docker</span>
+              <h3>Docker Compose</h3>
+              <p>在 <code>.env</code> 中设置 Postgres 密码；Compose 会从源代码构建镜像，并同时启动 Postgres。</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-docker" aria-label="复制">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">复制</span>
+                </button>
+                <code id="inst-docker"><span class="tok-cmd">cp</span> .env.example .env
+<span class="tok-cmd">docker</span> compose up -d --build</code>
+              </div>
+            </article>
+
+            <article class="path">
+              <span class="path__tag">预先构建</span>
+              <h3>发行封存档</h3>
+              <p>下载平台封存档，填写数据库连接配置，再通过监督脚本启动。</p>
+              <div class="code-light">
+                <button class="copy-btn" type="button" data-copy-target="#inst-bin" aria-label="复制">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h10" /></svg>
+                  <span class="copy-btn__text">复制</span>
+                </button>
+                <code id="inst-bin"><span class="tok-cmd">cp</span> config.example.json config.json
+<span class="tok-cmd">./start.sh</span></code>
+              </div>
+              <div class="archive" aria-label="发行封存档">
+                <span class="chip">linux amd64</span>
+                <span class="chip">linux arm64</span>
+                <span class="chip">macos amd64</span>
+                <span class="chip">macos arm64</span>
+                <span class="chip">windows amd64</span>
+                <span class="chip">GHCR Docker 镜像</span>
+              </div>
+            </article>
+          </div>
+
+          <p class="hero__stack" style="margin-top:1.75rem">每个封存档均包含内嵌网页界面、监督脚本、技能、配置示例与智能体适配器。<a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">查看 v0.1.0 与 SHA256SUMS →</a>
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ REQUIREMENTS ============ -->
+      <section class="section" id="requirements" aria-labelledby="req-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="req-h">事前需求</h2>
+            <p>ScopeWeaver 提供应用程序；数据库与模型供应商由您准备。</p>
+          </div>
+          <div class="req-grid">
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3" /></svg>
+                PostgreSQL
+              </h3>
+              <p>可连接的 Postgres 数据库。结构已内嵌，每次启动都会幂等创建。</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a7 7 0 00-4 12.7V18h8v-3.3A7 7 0 0012 2zM9 22h6M10 18v4M14 18v4" /></svg>模型供应商</h3>
+              <p>单独配置的 LLM：设置 <code>ANTHROPIC_API_KEY</code> 或 <code>OPENAI_API_KEY</code>，也可以在界面中输入。未配置模型时无法运行探索。</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 17l6-6-6-6M12 19h8" /></svg>Node.js 22+（适配器）</h3>
+              <p>仅编程智能体适配器需要。安装依赖时，请运行 <code>npm ci</code>，工作目录为 <code>adapters/agent</code>。</p>
+            </div>
+            <div class="req">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="14" rx="2" /><path d="M8 20h8M12 18v2" /></svg>本地实验室目标</h3>
+              <p>仅能用于您拥有且隔离运行的系统。ScopeWeaver 适用于本地隔离研究，禁止线上测试。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ LIMITS & CREDITS ============ -->
+      <section class="section" id="limits" aria-labelledby="limits-h">
+        <div class="wrap">
+          <div class="section__head">
+            <h2 id="limits-h">如实说明限制</h2>
+            <p>以下说明本版本的能力与限制，均可对照仓库查证。</p>
+          </div>
+
+          <div class="limits-layout">
+            <ul class="limit-list">
+              <li><strong>仅限本地隔离研究。</strong>继承的使用限制禁止扫描、探测或攻击任何线上服务，无论是否获得授权。仅得用于您拥有且已隔离的系统。</li>
+              <li><strong>不宣称可供正式环境使用或具备已验证的成效。</strong>本专案不宣称已具备正式环境渗透测试就绪程度，也不宣称安全结果经独立验证。</li>
+              <li><strong>未验证的运行环境。</strong>尚未验证 Docker 镜像与 Windows 批次档的实际运行。封装测试数据不代表真实 Windows 运行环境测试。</li>
+              <li><strong>依赖包仍需改善。</strong>针对工具的更新未解决所有审计问题。目前审计命令与剩余限制请见验证说明。</li>
+              <li><strong>适配器测试使用本地测试数据。</strong>测试仅证明本地请求／响应契约；尚未独立验证编程智能体至供应商的实际运行。详见 <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hans/VERIFICATION.md" rel="noopener">验证详情</a>.</li>
+            </ul>
+
+            <div>
+              <div class="aside-card">
+                <span class="tagline-mark">拥有者工作流 · 已去识别化</span>
+                <h3>已观察到的协作流程</h3>
+                <p>已在拥有者工作区观察到：从对话创建任务、检查工作智能体追踪，以及韩文进度更新。已省略可识别信息与安全发现。</p>
+                <p>此为协作流程的证据，并非独立安全评估、已验证发现或正式环境就绪证明。</p>
+              </div>
+
+              <div class="aside-card">
+                <h3>来源与致谢</h3>
+                <p>ScopeWeaver 为 <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a> 的独立衍生项目，基于上游提交 <code>160fe13</code>，按 AGPL-3.0 授权。智能体功能采用 <a href="https://github.com/Autumn-27/norma" rel="noopener">norma</a> SDK；资产同步来自 <a href="https://github.com/Autumn-27/ScopeSentry" rel="noopener">ScopeSentry</a>.
+                </p>
+                <p class="credits">画面展示随附的虚构示范数据，并清楚标示为示范，并非真实目标扫描。标题字型为自行托管的 Schibsted Grotesk 与 JetBrains Mono（SIL Open Font License）。韩文使用读者系统的韩文字型。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-top">
+          <a class="brand" href=".././" aria-label="ScopeWeaver 首页">
+            <img src="../assets/img/scopeweaver.svg" alt="" width="30" height="30" />
+            ScopeWeaver
+          </a>
+          <nav class="footer-links" aria-label="页尾">
+            <a href="https://github.com/cskwork/scopeweaver" rel="noopener">GitHub</a>
+            <a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">版本 v0.1.0</a>
+            <a href="https://github.com/cskwork/scopeweaver/tree/main/docs" rel="noopener">文件</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hans/agent-adapter.md" rel="noopener">智能体适配器</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hans/PROVENANCE.md" rel="noopener">来源</a>
+            <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/zh-Hans/VERIFICATION.md" rel="noopener">验证</a>
+          </nav>
+        </div>
+        <div class="footer-bottom">
+          <p>ScopeWeaver 衍生自 ARTEX，依 AGPL-3.0 授权。通过网络托管的修改版本必须公开源代码。仅限本地隔离学习与验证。</p>
+          <p>本静态页面仅供介绍，不提供即时扫描或对话服务。</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="../assets/js/app.js" defer></script>
+  </body>
+</html>

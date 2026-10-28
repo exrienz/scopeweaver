@@ -1,6 +1,6 @@
 # ScopeWeaver `/btw`
 
-[English](../../../sidequestion/README.md)
+[English](../../../sidequestion/README.md) · 한국어 · [简体中文](../../zh-Hans/sidequestion/README.md) · [繁體中文](../../zh-Hant/sidequestion/README.md) · [日本語](../../ja/sidequestion/README.md) · [Español](../../es/sidequestion/README.md)
 
 일반 대화, 작업 MainAgent, 현재 작업 소속 Worker에서 독립적인 곁가지 질문을 지원합니다. 기본 입력창에 `/btw 질문`을 입력하면 제출하고, 내용 없는 `/btw` 또는 곁가지 질문 버튼은 기록을 엽니다. 데스크톱은 너비 조절 사이드바, 모바일은 Drawer를 사용합니다.
 

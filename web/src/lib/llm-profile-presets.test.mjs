@@ -1,6 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyLLMProfilePreset, getLLMProfilePreset, isOllamaPreset, selectInstalledOllamaModel, LLM_PROFILE_PRESET_IDS } from "./llm-profile-presets.ts";
+import { applyLLMProfilePreset, canReuseSDKBridgeToken, getLLMProfilePreset, isOllamaPreset, selectInstalledOllamaModel, LLM_PROFILE_PRESET_IDS } from "./llm-profile-presets.ts";
+
+test("OpenCode SDK template isolates bridge credentials and waits for explicit model discovery", () => {
+  const draft = Object.freeze({ name: "SDK", api_key: "unsaved-cloud-key", proxy: "http://proxy:8080", session_header_key: "x-opencode-session", streaming: false, rate_per_minute: 7 });
+  const next = applyLLMProfilePreset(draft, "opencode-sdk");
+  assert.deepEqual(getLLMProfilePreset("opencode-sdk"), {
+    format: "opencode-sdk", base_url: "http://127.0.0.1:4097", model: "", api_key: "", proxy: "", session_header_key: "", streaming: true,
+    thinking_type: "", reasoning_effort: "", context_window_k: 0, max_tokens: 0, max_tokens_field: "",
+  });
+  assert.equal(next.name, draft.name);
+  assert.equal(next.rate_per_minute, draft.rate_per_minute);
+  for (const field of ["api_key", "proxy", "session_header_key", "model"]) assert.equal(next[field], "", field);
+  assert.equal(next.streaming, true);
+  assert.equal(draft.api_key, "unsaved-cloud-key");
+  assert.equal(isOllamaPreset("opencode-sdk"), false, "SDK discovery must not use automatic Ollama discovery");
+  assert.equal(applyLLMProfilePreset(next, "openai").api_key, "", "leaving SDK must not invent a cloud key");
+  assert.equal(applyLLMProfilePreset({ ...next, api_key: "bridge-token" }, "openai").api_key, "", "switching templates must not send a bridge token to a cloud provider");
+});
+
+test("saved bridge-token hints require the same SDK endpoint and never cross host aliases or formats", () => {
+  const profile = { format: "opencode-sdk", base_url: "http://127.0.0.1:4097/bridge/" };
+  assert.equal(canReuseSDKBridgeToken(profile, "opencode-sdk", " http://127.0.0.1:4097/bridge "), true);
+  for (const url of ["http://localhost:4097/bridge", "http://[::1]:4097/bridge", "http://2130706433:4097/bridge", "http://127.0.0.1:4098/bridge", "https://127.0.0.1:4097/bridge", "http://127.0.0.1:4097/other", "http://127.0.0.1:4097/bridge/a/../", "http://127.0.0.1:4097/bridge?token=x", "http://127.0.0.1:4097/bridge#x", "http://user@127.0.0.1:4097/bridge", "invalid", ""]) {
+    assert.equal(canReuseSDKBridgeToken(profile, "opencode-sdk", url), false, url);
+  }
+  for (const format of ["openai", "anthropic", "openai-responses", "ollama"]) {
+    assert.equal(canReuseSDKBridgeToken(profile, format, profile.base_url), false, format);
+    assert.equal(canReuseSDKBridgeToken({ ...profile, format }, "opencode-sdk", profile.base_url), false, format);
+  }
+  assert.equal(canReuseSDKBridgeToken(null, "opencode-sdk", profile.base_url), false);
+  assert.equal(canReuseSDKBridgeToken({ format: "opencode-sdk", base_url: "" }, "opencode-sdk", "http://127.0.0.1:4097/"), true, "blank SDK URLs use the default bridge root");
+});
 
 test("GLM templates distinguish billing endpoints and use the measured economy settings", () => {
   const general = getLLMProfilePreset("zai-general");

@@ -61,6 +61,27 @@ func TestChineseReportsLocalizeLabelsAndPreserveEvidence(t *testing.T) {
 	}
 }
 
+func TestAllShippedReportLanguagesPreserveEvidenceAndMachineValues(t *testing.T) {
+	raw := "original evidence 原文 / 원문 <raw> 100% {unchanged}"
+	f := &db.DBFinding{ID: 7, Name: raw, Summary: raw, Evidence: raw, Report: raw, Severity: "high", Status: "pending"}
+	for _, lang := range locale.Languages() {
+		t.Run(string(lang), func(t *testing.T) {
+			text := FindingsMarkdown([]*db.DBFinding{f}, time.Unix(0, 0), lang)
+			heading, ok := locale.Raw(lang, "# Vulnerability findings report\n\n")
+			if !ok || !strings.HasPrefix(text, heading) || !strings.Contains(text, raw) || strings.Contains(text, "%!") {
+				t.Fatal("report localization or content preservation failed")
+			}
+			csv := string(FindingsCSV([]*db.DBFinding{f}, lang))
+			if !strings.Contains(csv, "high") || !strings.Contains(csv, "pending") || !strings.Contains(csv, raw) {
+				t.Fatal("CSV machine values or raw evidence changed")
+			}
+			if severityLabel(lang, "custom") != "CUSTOM" || statusLabel(lang, "custom") != "custom" {
+				t.Fatal("unknown report value fallback changed")
+			}
+		})
+	}
+}
+
 func TestFindingReportInfoAndEmptySeverityLocalization(t *testing.T) {
 	for _, lang := range []struct {
 		id   locale.Lang

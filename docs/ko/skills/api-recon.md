@@ -1,6 +1,6 @@
 # API Recon (프런트엔드 인터페이스 탐색)
 
-[English](../../../skills/api-recon/SKILL.md)
+[English](../../../skills/api-recon/SKILL.md) · 한국어 · [简体中文](../../zh-Hans/skills/api-recon.md) · [繁體中文](../../zh-Hant/skills/api-recon.md) · [日本語](../../ja/skills/api-recon.md) · [Español](../../es/skills/api-recon.md)
 
 승인된 범위에서 백엔드 API(경로, 메서드, 매개변수, 응답 본문), 프런트엔드 경로, UI 동작(탭, 대화상자, 표 조작)을 가능한 한 완전하게 수집합니다.
 

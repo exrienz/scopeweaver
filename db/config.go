@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/Autumn-27/artex/llmnet"
 	"github.com/Autumn-27/artex/locale"
+	"github.com/Autumn-27/artex/opencodesdk"
 	"time"
 )
 
@@ -152,6 +153,9 @@ ORDER BY is_default DESC, priority DESC, id ASC`)
 		if err := scanProfile(rows, &p.APIKey, &p); err != nil {
 			return nil, err
 		}
+		if p.Format == opencodesdk.Format && p.APIKey == "" {
+			continue
+		}
 		if p.APIKey != "" || p.Format == "ollama" || llmnet.IsLocalEndpoint(p.BaseURL) {
 			out = append(out, &p)
 		}
@@ -161,7 +165,13 @@ ORDER BY is_default DESC, priority DESC, id ASC`)
 
 // SaveProfile inserts (id==0) or updates a profile. Empty apiKey on update keeps existing.
 func (d *DB) SaveProfile(p *LLMProfile) (int64, error) {
+	if p.Format == opencodesdk.Format && !opencodesdk.ValidModel(p.Model) {
+		return 0, locale.NewError("OpenCode SDK model must be providerID/modelID")
+	}
 	hint := p.APIKeyHint
+	if p.APIKey != "" {
+		hint = ""
+	}
 	if len(p.APIKey) >= 4 {
 		hint = "…" + p.APIKey[len(p.APIKey)-4:]
 	}
@@ -175,10 +185,27 @@ VALUES ($1,$2,NULLIF($3,''),NULLIF($4,''),$5,NULLIF($6,''),NULLIF($7,''),$8,$9,$
 		return id, err
 	}
 	if p.APIKey == "" {
-		_, err := d.Exec(`UPDATE llm_profiles SET name=$1,format=$2,api_key=CASE WHEN $2='ollama' AND format<>'ollama' THEN NULL ELSE api_key END,api_key_hint=CASE WHEN $2='ollama' AND format<>'ollama' THEN NULL ELSE api_key_hint END,base_url=NULLIF($3,''),proxy=NULLIF($4,''),model=$5,rate_per_second=$6,rate_per_minute=$7,context_window_k=$8,reasoning_effort=$9,priority=$10,pool_exclude=$11,thinking_type=$12,streaming=$13,max_tokens=$14,max_tokens_field=$15,session_header_key=$16,retry_connect_attempts=$17,retry_connect_interval_ms=$18,retry_empty_attempts=$19,retry_empty_interval_ms=$20,retry_stream_attempts=$21,retry_stream_interval_ms=$22,keep_alive=$23,llm_max_concurrent=$24 WHERE id=$25`,
+		// Lock the credential scope and update key/hint together; concurrent edits cannot reuse a token from another bridge.
+		tx, err := d.Begin()
+		if err != nil {
+			return p.ID, err
+		}
+		defer tx.Rollback()
+		var oldFormat, oldURL string
+		if err = tx.QueryRow(`SELECT format,COALESCE(base_url,'') FROM llm_profiles WHERE id=$1 FOR UPDATE`, p.ID).Scan(&oldFormat, &oldURL); err != nil {
+			if err == sql.ErrNoRows {
+				return p.ID, nil
+			}
+			return p.ID, err
+		}
+		clearSDK := (oldFormat == opencodesdk.Format || p.Format == opencodesdk.Format) && (oldFormat != p.Format || !opencodesdk.SameEndpoint(oldURL, p.BaseURL))
+		_, err = tx.Exec(`UPDATE llm_profiles SET name=$1,format=$2,api_key=CASE WHEN $26 OR ($2='ollama' AND format<>'ollama') THEN NULL ELSE api_key END,api_key_hint=CASE WHEN $26 OR ($2='ollama' AND format<>'ollama') THEN NULL ELSE api_key_hint END,base_url=NULLIF($3,''),proxy=NULLIF($4,''),model=$5,rate_per_second=$6,rate_per_minute=$7,context_window_k=$8,reasoning_effort=$9,priority=$10,pool_exclude=$11,thinking_type=$12,streaming=$13,max_tokens=$14,max_tokens_field=$15,session_header_key=$16,retry_connect_attempts=$17,retry_connect_interval_ms=$18,retry_empty_attempts=$19,retry_empty_interval_ms=$20,retry_stream_attempts=$21,retry_stream_interval_ms=$22,keep_alive=$23,llm_max_concurrent=$24 WHERE id=$25`,
 			p.Name, p.Format, p.BaseURL, p.Proxy, p.Model, p.RatePerSecond, p.RatePerMinute, p.ContextWindowK, p.ReasoningEffort, p.Priority, p.PoolExclude, p.ThinkingType, p.Streaming, p.MaxTokens, p.MaxTokensField, p.SessionHeaderKey,
-			r.Connect.Attempts, r.Connect.IntervalMS, r.Empty.Attempts, r.Empty.IntervalMS, r.Stream.Attempts, r.Stream.IntervalMS, p.KeepAlive, p.MaxConcurrent, p.ID)
-		return p.ID, err
+			r.Connect.Attempts, r.Connect.IntervalMS, r.Empty.Attempts, r.Empty.IntervalMS, r.Stream.Attempts, r.Stream.IntervalMS, p.KeepAlive, p.MaxConcurrent, p.ID, clearSDK)
+		if err != nil {
+			return p.ID, err
+		}
+		return p.ID, tx.Commit()
 	}
 	_, err := d.Exec(`UPDATE llm_profiles SET name=$1,format=$2,base_url=NULLIF($3,''),proxy=NULLIF($4,''),model=$5,api_key=$6,api_key_hint=$7,rate_per_second=$8,rate_per_minute=$9,context_window_k=$10,reasoning_effort=$11,priority=$12,pool_exclude=$13,thinking_type=$14,streaming=$15,max_tokens=$16,max_tokens_field=$17,session_header_key=$18,retry_connect_attempts=$19,retry_connect_interval_ms=$20,retry_empty_attempts=$21,retry_empty_interval_ms=$22,retry_stream_attempts=$23,retry_stream_interval_ms=$24,keep_alive=$25,llm_max_concurrent=$26 WHERE id=$27`,
 		p.Name, p.Format, p.BaseURL, p.Proxy, p.Model, p.APIKey, hint, p.RatePerSecond, p.RatePerMinute, p.ContextWindowK, p.ReasoningEffort, p.Priority, p.PoolExclude, p.ThinkingType, p.Streaming, p.MaxTokens, p.MaxTokensField, p.SessionHeaderKey,

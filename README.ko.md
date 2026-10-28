@@ -4,7 +4,7 @@
 
 LLM 멀티 에이전트 기반 자율 침투 테스트 시스템 (Go 백엔드 + Next.js 프런트엔드)
 
-[English](README.md) · 한국어
+[English](README.md) · 한국어 · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
 </div>
 
@@ -23,9 +23,11 @@ LLM 멀티 에이전트 기반 자율 침투 테스트 시스템 (Go 백엔드 +
 
 ## 언어
 
-기본 언어는 영어이며 화면에서 영어/한국어/간체 중국어(`zh-Hans`)를 선택합니다.
+기본 언어는 영어이며 화면에서 영어, 한국어, 간체 중국어(`zh-Hans`), 번체 중국어(`zh-Hant`),
+일본어(`ja`), 스페인어(`es`)를 선택합니다.
 `zh`, `zh-CN`, `zh-SG`는 간체로 일치하며 명시된 Hans는 번체 지역과 결합해도 간체를 유지합니다.
-선언되지 않은 번체 태그(`zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO`)는 간체로 바꾸지 않고 다음 설정을
+`zh-TW`, `zh-HK`, `zh-MO`는 번체로 일치하며 명시된 Hant는 간체 지역과 결합해도 번체를
+유지합니다. 일본어와 스페인어 지역 태그는 `ja`와 `es`로 일치합니다. 지원하지 않는 언어는 다음 설정을
 사용합니다. [기여자 언어 안내](web/src/i18n/README.ko.md)를 참고하세요. 서버의 저장된 기본값은 시스템 설정의
 `language`이고 환경 대안은 `SCOPEWEAVER_LANGUAGE` 또는 `ARTEX_LANGUAGE`입니다. 운영체제
 `LANG`은 앱 언어를 선택하지 않습니다.
@@ -59,6 +61,26 @@ LLM 멀티 에이전트 기반 자율 침투 테스트 시스템 (Go 백엔드 +
 [업스트림 ARTEX](https://github.com/Autumn-27/ARTEX/tree/160fe13c243be361eeac5408c40a96e824fa842c/screenshots)입니다.
 
 ---
+
+## 테스트 범위와 자산 규칙
+
+회사/작업 범위는 선언한 테스트 범위입니다. 프롬프트 지침과 자산 기록·커버리지 필터이며
+네트워크 경계가 아닙니다. WebFetch, Bash 등 범위 밖 도구 호출을 막으려면 **가로채기 규칙**을
+설정해야 합니다. 기본 제공 파괴적 명령 규칙 외에는 기본 설정된 규칙이 없습니다. 실제 네트워크
+경계를 만들려면 방화벽이나 우회할 수 없도록 적용한 프록시 등 ScopeWeaver 외부의 송신 제어가 필요합니다.
+
+자산 허용/차단 규칙은 기록(`insert_assets`, `add_intent`, 에이전트 범위 쓰기)을 제한하며
+네트워크 호출은 막지 않습니다. 작업 규칙은 **작업 → 개요**, 전역 차단 규칙은
+**시스템 → 가로채기 → 자산**에서 편집합니다. 작업 규칙은 작업 안에서만 적용되며 독립 채팅에는
+전역 차단 규칙만 적용됩니다. 차단 규칙이 허용 규칙보다 우선합니다.
+
+**도메인(부분 일치)**(`fuzzy_domain`)은 레이블 단위로 일치합니다. 차단 규칙은 위치와 관계없이
+레이블을 찾습니다. `.gov`는 `x.gov`, `x.gov.uk`와 일치하지만 `a.government.com`과는 일치하지
+않습니다. 허용 규칙은 해당 도메인과 하위 도메인에만 일치합니다. `juice-shop.internal`은
+`a.juice-shop.internal`을 허용하지만 `juice-shop.internal2`, `juice-shop.internal.attacker.com`은
+허용하지 않습니다. 기존 규칙으로 이전에 통과했던 자산 기록이 거부될 수 있습니다. 에이전트의
+`add_task_scope`와 worker의 자동 범위 추가도 현재 자산 규칙을 통과해야 합니다. 규칙을 읽지 못하면
+쓰기를 거부하거나 추가를 건너뜁니다. UI의 수동 범위 편집과 기존 범위 행은 바뀌지 않습니다.
 
 ## 승인 기록
 
@@ -96,6 +118,15 @@ PostgreSQL 데이터베이스 하나에는 ScopeWeaver 서버 프로세스를 �
 [제공자 설정과 지원 범위](docs/ko/llm-providers.md)를 확인하세요.
 클라우드 토큰 사용량은 [토큰 사용량 줄이기](docs/ko/llm-providers.md#토큰-사용량-줄이기)를 참고하세요.
 
+선택형 **OpenCode SDK 브리지** 프로필은 고정된 `native` CLI·클라이언트 **2.1.4**(기본값)와
+`legacy` SDK·CLI **1.19.4**, 별도 브리지 토큰, `providerID/modelID`를 지원합니다.
+호스트 도구와 승인은 ScopeWeaver의 Norma 런타임이 관리합니다. 레거시는 안전한 JSON 구조를 보존하며
+무해한 공백·이스케이프는 정규화될 수 있습니다. 원본 바이트는 보장하지 않으며 안전하지 않은 정수는 거부합니다.
+두 런타임 모두 Windows는 지원하지 않습니다. 이전 실제 런타임 테스트 범위는 macOS arm64이며
+Linux의 호스팅된 CI 결과는 아직 없습니다. 하위 제공자가 클라우드일 수 있어 로컬 전용 LLM 모드에서는 거부됩니다.
+[SDK 설정·제약·다운그레이드 준비](docs/ko/llm-providers.md#opencode-sdk-브리지)를 참고하세요.
+SDK 프로필이 남아 있으면 이전 바이너리는 시작할 수 없습니다.
+
 선택 사항인 **기본 Ollama** 프로필은 API 키 없이 동작합니다. 같은 컴퓨터의 Ollama, Docker에서
 접근하는 호스트 Ollama, 선택형 `docker compose --profile local-llm` 서비스용 템플릿 세 개를
 제공합니다. 선택하면 서버에 설치된 모델을 조회하고 도구 호출 지원을 선언한 모델을 우선 채웁니다.
@@ -125,9 +156,9 @@ cd scopeweaver
 실행되면 **http://localhost:8787**을 엽니다 (첫 방문은 관리자 비밀번호를 설정하는 `/setup`으로
 연결됩니다).
 
-> 스크립트는 기본적으로 영어로 안내합니다. 한국어 안내를 원하면 실행 전에
-> `SCOPEWEAVER_LANGUAGE=ko`(또는 `ARTEX_LANGUAGE=ko`)를 설정하세요. 예:
-> `SCOPEWEAVER_LANGUAGE=ko ./install.sh`.
+> 스크립트 안내는 기본이 영어입니다. `SCOPEWEAVER_LANGUAGE`(또는 `ARTEX_LANGUAGE`)에
+> `en`, `ko`, `zh-Hans`, `zh-Hant`, `ja`, `es` 중 하나를 설정하세요. 예:
+> `SCOPEWEAVER_LANGUAGE=ko ./install.sh`. `y/n` 같은 응답과 명령·플래그 이름은 그대로 사용합니다.
 
 ### 방법 2: Docker Compose (수동)
 
@@ -608,11 +639,11 @@ ScopeWeaver는 [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX)의 업스�
 - **제품 이름**: 사용자에게 보이는 문서·스크립트·배포에서 "ARTEX" → "ScopeWeaver". Go
   모듈(`github.com/Autumn-27/artex`), 빌드 소스 경로(`./cmd/artex`), `ARTEX_*` 설정/환경 키,
   `artex` 데이터베이스 기본값은 호환을 위해 **유지**합니다.
-- **문서 언어**: 영어가 기본이며, 한국어 번역은 [README.ko.md](README.ko.md)와 [docs/ko](docs/ko/README.md) 아래에
-  있습니다.
-- **스크립트 언어**: 설치/빌드/시작/업데이트/비밀번호 재설정 안내는 기본이 영어이고,
-  `SCOPEWEAVER_LANGUAGE=ko`(`ARTEX_LANGUAGE=ko`도 동작)로 한국어를 선택할 수 있습니다. 네트워크
-  번역은 쓰지 않습니다.
+- **문서 언어**: 영어가 기본이며, 유지 관리하는 사용자·기여자 안내에는 한국어, 간체 중국어, 번체 중국어,
+  일본어, 스페인어 번역이 있습니다. 각 안내의 언어 링크를 이용하세요.
+- **스크립트 언어**: 설치/빌드/시작/업데이트/비밀번호 재설정/개발 안내는 기본이 영어이며,
+  `SCOPEWEAVER_LANGUAGE`(`ARTEX_LANGUAGE`도 동작)로 `en`, `ko`, `zh-Hans`, `zh-Hant`,
+  `ja`, `es`를 선택합니다. 네트워크 번역은 쓰지 않습니다.
 - **배포**: 출력 바이너리는 `scopeweaver`, 릴리스 아카이브는
   `scopeweaver-<version>-<os>-<arch>.zip`, 저장소는 `https://github.com/cskwork/scopeweaver`,
   컨테이너 이미지는 이 저장소의 GHCR을 대상으로 합니다. 업스트림의 Docker Hub

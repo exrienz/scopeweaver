@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>ScopeWeaver — 複数エージェントによるセキュリティ研究のセルフホスト型コンソール</title>
+<meta content="ScopeWeaver は、ローカルの隔離されたセキュリティ研究向けに、目標の計画、自律エージェント、資産のスコープ、カバレッジ、記録した検出事項を連携させるセルフホスト型コンソールです。Go バックエンド、埋め込み Next.js、PostgreSQL。ARTEX の派生物、AGPL-3.0。" name="description"/>
+<link href="https://cskwork.github.io/scopeweaver/ja/" rel="canonical"/>
+<link rel="alternate" hreflang="en" href="https://cskwork.github.io/scopeweaver/"/>
+<link rel="alternate" hreflang="ko" href="https://cskwork.github.io/scopeweaver/ko/"/>
+<link rel="alternate" hreflang="zh-Hans" href="https://cskwork.github.io/scopeweaver/zh-Hans/"/>
+<link rel="alternate" hreflang="zh-Hant" href="https://cskwork.github.io/scopeweaver/zh-Hant/"/>
+<link rel="alternate" hreflang="ja" href="https://cskwork.github.io/scopeweaver/ja/"/>
+<link rel="alternate" hreflang="es" href="https://cskwork.github.io/scopeweaver/es/"/>
+<link rel="alternate" hreflang="x-default" href="https://cskwork.github.io/scopeweaver/"/>
+<link href="../favicon.svg" rel="icon" type="image/svg+xml"/>
+<meta content="website" property="og:type"/>
+<meta content="ScopeWeaver" property="og:site_name"/>
+<meta content="ScopeWeaver — 複数エージェントによるセキュリティ研究のセルフホスト型コンソール" property="og:title"/>
+<meta content="ローカルの隔離された研究向けに、目標の計画、自律エージェント、資産のスコープ、カバレッジ、検出事項を 1 つのセルフホスト型コンソールで連携させます。" property="og:description"/>
+<meta content="https://cskwork.github.io/scopeweaver/ja/" property="og:url"/>
+<meta content="https://cskwork.github.io/scopeweaver/assets/img/og-en.jpg" property="og:image"/>
+<meta content="ja_JP" property="og:locale"/>
+<meta content="en_US" property="og:locale:alternate"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<link as="font" crossorigin="" href="../assets/fonts/schibsted-grotesk-latin-wght.woff2" rel="preload" type="font/woff2"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<a class="skip-link" href="#main">本文に移動</a>
+<header class="site-header">
+<div class="wrap site-header__inner">
+<a aria-label="ScopeWeaver のホーム" class="brand" href="../">
+<img alt="" height="30" src="../assets/img/scopeweaver.svg" width="30"/>
+          ScopeWeaver
+        </a>
+<button aria-controls="primary-nav" aria-expanded="false" aria-label="メニュー" class="nav-toggle" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M3 6h18M3 12h18M3 18h18"></path>
+</svg>
+</button>
+<nav aria-label="メインナビゲーション" class="primary-nav" id="primary-nav">
+<a href="#walkthrough">操作の紹介</a>
+<a href="#bridge">エージェント連携</a>
+<a href="#install">インストール</a>
+<a href="#requirements">要件</a>
+<a href="#limits">制限</a>
+</nav>
+<div class="header-tools has-nav">
+<details class="lang-switch language-menu">
+<summary aria-label="言語">JA</summary>
+<div class="language-options"><a href="../" hreflang="en" lang="en">English</a><a href="../ko/" hreflang="ko" lang="ko">한국어</a><a href="../zh-Hans/" hreflang="zh-Hans" lang="zh-Hans">简体中文</a><a href="../zh-Hant/" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a><span aria-current="true" hreflang="ja" lang="ja">日本語</span><a href="../es/" hreflang="es" lang="es">Español</a></div>
+</details>
+<a class="ghlink" href="https://github.com/cskwork/scopeweaver" rel="noopener">
+<svg aria-hidden="true" fill="currentColor" viewbox="0 0 16 16">
+<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+</svg>
+<span class="ghlink-text">GitHub</span>
+</a>
+</div>
+</div>
+</header>
+<main id="main">
+<!-- ============ HERO ============ -->
+<section class="hero">
+<div class="wrap hero__inner">
+<div class="hero__lede">
+<h1>
+              セルフホスト型コンソールで
+              <span class="accent">複数エージェントによるセキュリティ探索を</span>を利用します。
+            </h1>
+<p class="hero__offer">
+              ScopeWeaver は、目標の計画、自律エージェント、資産のスコープ、カバレッジ、記録した検出事項を、1 つの審査画面で連携させます。自分のマシン上で、ローカルの隔離した実験対象に使う設計です。
+            </p>
+<div class="hero__actions">
+<a class="btn btn--primary" href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"></path>
+</svg>
+                v0.1.0 をダウンロード
+              </a>
+<a class="btn btn--ghost" href="#install">初期設定ガイド</a>
+</div>
+<p class="hero__stack">
+<strong>Go バックエンド · 埋め込み Next.js · PostgreSQL。</strong>
+              元のプロジェクト:
+              <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a>。ライセンスは AGPL-3.0。
+            </p>
+</div>
+<div class="hero__media">
+<figure class="shot">
+<div class="shot__frame">
+<div aria-hidden="true" class="shot__bar">
+<i></i><i></i><i></i>
+<span>localhost:8787 · ダッシュボード</span>
+</div>
+<picture>
+<source media="(min-width: 700px)" srcset="../assets/img/en-dashboard-1440.webp"/>
+<img alt="英語画面で、実行中のタスク、エージェントの活動、カバレッジを示す ScopeWeaver のダッシュボード。" fetchpriority="high" height="1000" src="../assets/img/en-dashboard-960.webp" width="1440"/>
+</picture>
+</div>
+<figcaption class="demo">
+                架空のデモデータです。実際のシステムのスキャンではありません。
+              </figcaption>
+</figure>
+</div>
+</div>
+</section>
+<!-- ============ WALKTHROUGH ============ -->
+<section aria-labelledby="walk-h" class="section" id="walkthrough">
+<div class="wrap">
+<div class="section__head">
+<h2 id="walk-h">実際の画面で、1 つのタスクの流れを見る</h2>
+<p>
+              ScopeWeaver は、 <em>対象が何か</em> と
+              <em>どこまでテストしたか</em> を、共有の資産グラフとタスク別の探索グラフという、連携する 2 つのグラフに分けます。画面を選び、各段階の場所を確認してください。
+            </p>
+</div>
+<div class="walk">
+<div class="walk__media">
+<figure aria-labelledby="tab-dashboard" class="tabpanel" id="panel-dashboard" role="tabpanel" tabindex="0">
+<div class="shot__frame">
+<div aria-hidden="true" class="shot__bar"><i></i><i></i><i></i><span>ダッシュボード</span></div>
+<picture>
+<source media="(min-width: 700px)" srcset="../assets/img/en-dashboard-1440.webp"/>
+<img alt="タスクの概要と最近のエージェントの活動を示すダッシュボード。" height="1000" src="../assets/img/en-dashboard-960.webp" width="1440"/>
+</picture>
+</div>
+<figcaption class="demo">架空のデモデータです。実際のシステムのスキャンではありません。</figcaption>
+</figure>
+<figure aria-labelledby="tab-tasks" class="tabpanel" hidden="" id="panel-tasks" role="tabpanel" tabindex="0">
+<div class="shot__frame">
+<div aria-hidden="true" class="shot__bar"><i></i><i></i><i></i><span>タスク</span></div>
+<picture>
+<source media="(min-width: 700px)" srcset="../assets/img/en-tasks-1440.webp"/>
+<img alt="状態、エージェント数、タスク別の探索を示すタスク一覧。" height="1000" src="../assets/img/en-tasks-960.webp" width="1440"/>
+</picture>
+</div>
+<figcaption class="demo">架空のデモデータです。実際のシステムのスキャンではありません。</figcaption>
+</figure>
+<figure aria-labelledby="tab-findings" class="tabpanel" hidden="" id="panel-findings" role="tabpanel" tabindex="0">
+<div class="shot__frame">
+<div aria-hidden="true" class="shot__bar"><i></i><i></i><i></i><span>検出事項</span></div>
+<picture>
+<source media="(min-width: 700px)" srcset="../assets/img/en-findings-1440.webp"/>
+<img alt="記録した証拠とレポートの詳細を示す検出事項一覧。" height="1000" src="../assets/img/en-findings-960.webp" width="1440"/>
+</picture>
+</div>
+<figcaption class="demo">架空のデモデータです。実際のシステムのスキャンではありません。</figcaption>
+</figure>
+<figure aria-labelledby="tab-settings" class="tabpanel" hidden="" id="panel-settings" role="tabpanel" tabindex="0">
+<div class="shot__frame">
+<div aria-hidden="true" class="shot__bar"><i></i><i></i><i></i><span>システム設定</span></div>
+<picture>
+<source media="(min-width: 700px)" srcset="../assets/img/en-settings-1440.webp"/>
+<img alt="ワーカーの同時実行数、バージョン、更新などのシステム設定。" height="1000" src="../assets/img/en-settings-960.webp" width="1440"/>
+</picture>
+</div>
+<figcaption class="demo">架空のデモデータです。実際のシステムのスキャンではありません。</figcaption>
+</figure>
+<figure aria-labelledby="tab-llm" class="tabpanel" hidden="" id="panel-llm" role="tabpanel" tabindex="0">
+<div class="shot__frame">
+<div aria-hidden="true" class="shot__bar"><i></i><i></i><i></i><span>LLM · 新規</span></div>
+<picture>
+<source media="(min-width: 700px)" srcset="../assets/img/en-llm-templates-1440.webp"/>
+<img alt="GLM-5.3 のプロバイダーテンプレートを示す LLM 設定フォーム。" height="1000" src="../assets/img/en-llm-templates-960.webp" width="1440"/>
+</picture>
+</div>
+<figcaption class="demo">架空のデモデータです。実際のシステムのスキャンではありません。</figcaption>
+</figure>
+</div>
+<div aria-label="製品の画面" aria-orientation="vertical" class="tablist" role="tablist">
+<button aria-controls="panel-dashboard" aria-selected="true" class="tab" id="tab-dashboard" role="tab" tabindex="0">
+<span class="tab__title"><span class="tab__step">全体を把握</span> ダッシュボード</span>
+<span class="tab__desc">すべてのタスク、エージェント、最近のアクティビティが 1 つの概要に集まり、現在の作業状況から始められます。</span>
+</button>
+<button aria-controls="panel-tasks" aria-selected="false" class="tab" id="tab-tasks" role="tab" tabindex="-1">
+<span class="tab__title"><span class="tab__step">探索</span> タスク</span>
+<span class="tab__desc">プランナーが探索グラフを読んで探索方針を割り当て、ワーカーが 1 つの方針を取得し、実際のツールを実行して、新しい資産、事実、検出事項を両グラフに書き戻します。</span>
+</button>
+<button aria-controls="panel-findings" aria-selected="false" class="tab" id="tab-findings" role="tab" tabindex="-1">
+<span class="tab__title"><span class="tab__step">確認</span> 検出事項</span>
+<span class="tab__desc">検出事項は証拠とレポートを保持します。人間が承認・介入でき、再テストタブは独立したセッションで、元のタスクを再起動せず検出事項の状態を更新します。</span>
+</button>
+<button aria-controls="panel-settings" aria-selected="false" class="tab" id="tab-settings" role="tab" tabindex="-1">
+<span class="tab__title"><span class="tab__step">設定</span> システム設定</span>
+<span class="tab__desc">実行中のバックエンドで、タスクごとのワーカー数（既定 3）、画面の言語、アプリ内のバージョンと更新を設定します。</span>
+</button>
+<button aria-controls="panel-llm" aria-selected="false" class="tab" id="tab-llm" role="tab" tabindex="-1">
+<span class="tab__title"><span class="tab__step">プロバイダー</span> LLM テンプレート</span>
+<span class="tab__desc">LLM → 新規には GLM-5.3 の設定テンプレートがあります。自分の API キーを追加してください。選択だけでは保存、有効化、プロバイダーへの接続は行いません。</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- ============ AGENT BRIDGE ============ -->
+<section aria-labelledby="bridge-h" class="section band-dark" id="bridge">
+<div class="wrap">
+<div class="section__head">
+<h2 id="bridge-h">コーディングエージェントから操作</h2>
+<p>
+              ローカルのアダプターにより、Claude Code、Codex、Pi から、ScopeWeaver 自身の認証付き API を通じて、タスクを作成し、進捗、カバレッジ、検出事項を取得できます。
+            </p>
+</div>
+<div class="bridge">
+<div class="bridge__body">
+<p class="agent-line">
+<strong>操作用のインターフェースです。内部の仕組みはそのまま使います。</strong>
+                内部のプランナー、ワーカー、モデル設定を維持し、コーディングエージェントのサブスクリプションをモデル API キーへ変換しません。読み取りは既定で有効で、タスク作成と一時停止・再開は、次の設定で明示的に有効にします:
+                <code>SCOPEWEAVER_ALLOW_WRITES=true</code>を利用します。
+              </p>
+<div aria-label="コーディングエージェント" class="agent-tabs" role="tablist">
+<button aria-controls="ap-claude" aria-selected="true" class="agent-tab" id="at-claude" role="tab" tabindex="0">Claude Code</button>
+<button aria-controls="ap-codex" aria-selected="false" class="agent-tab" id="at-codex" role="tab" tabindex="-1">Codex</button>
+<button aria-controls="ap-pi" aria-selected="false" class="agent-tab" id="at-pi" role="tab" tabindex="-1">Pi</button>
+</div>
+<div aria-labelledby="at-claude" class="agent-panel" id="ap-claude" role="tabpanel" tabindex="0">
+<div class="codeblock">
+<button aria-label="コピー" class="copy-btn" data-copy-target="#code-claude" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15V5a2 2 0 012-2h10"></path></svg>
+<span class="copy-btn__text">コピー</span>
+</button>
+<code id="code-claude"><span class="tok-cmd">claude</span> mcp add <span class="tok-flag">--transport</span> stdio scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+</div>
+</div>
+<div aria-labelledby="at-codex" class="agent-panel" hidden="" id="ap-codex" role="tabpanel" tabindex="0">
+<div class="codeblock">
+<button aria-label="コピー" class="copy-btn" data-copy-target="#code-codex" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15V5a2 2 0 012-2h10"></path></svg>
+<span class="copy-btn__text">コピー</span>
+</button>
+<code id="code-codex"><span class="tok-cmd">codex</span> mcp add scopeweaver \
+  -- node /absolute/path/scopeweaver/adapters/agent/src/mcp.js</code>
+</div>
+</div>
+<div aria-labelledby="at-pi" class="agent-panel" hidden="" id="ap-pi" role="tabpanel" tabindex="0">
+<div class="codeblock">
+<button aria-label="コピー" class="copy-btn" data-copy-target="#code-pi" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15V5a2 2 0 012-2h10"></path></svg>
+<span class="copy-btn__text">コピー</span>
+</button>
+<code id="code-pi"><span class="tok-cmd">pi</span> <span class="tok-flag">-e</span> /absolute/path/scopeweaver/adapters/agent/pi-extension.js</code>
+</div>
+</div>
+<ul class="tool-list">
+<li><code>health</code> バックエンドと LLM の準備状態</li>
+<li><code>list_tasks</code> 状態、件数、ページ送り</li>
+<li><code>get_task</code> タスク 1 件の保存済み状態</li>
+<li><code>get_coverage</code> タスクの資産カバレッジ</li>
+<li><code>list_findings</code> 絞り込みとページ送り付きの検出事項</li>
+<li><code>get_finding</code> 詳細、証拠、レポート</li>
+<li><code>create_task</code> タスクを作成・スケジュール（書き込み）</li>
+<li><code>control_task</code> 一時停止・再開（書き込み）</li>
+</ul>
+<p class="note">
+                Node.js 22 以上、実行中のバックエンド、既存の管理者ログインが必要です。ツールが返す証拠は信頼できない対象側の内容で、指示ではありません。認証情報は環境変数に保持し、エラーでは伏せます。
+              </p>
+</div>
+<div class="bridge__aside">
+<figure class="shot">
+<div class="phone">
+<img alt="狭い幅のモバイルブラウザーで、タスクの概要を表示する ScopeWeaver。" height="844" loading="lazy" src="../assets/img/en-mobile-390.webp" width="390"/>
+</div>
+<figcaption class="demo">モバイル表示 · 架空のデモデータ。</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<!-- ============ INSTALL ============ -->
+<section aria-labelledby="install-h" class="section" id="install">
+<div class="wrap install">
+<div class="section__head">
+<h2 id="install-h">ローカルにインストールして実行</h2>
+<p>
+              ScopeWeaver は自分のマシンでセルフホストします。方法を選び、 <code>http://localhost:8787</code> を開いてください。初回は <code>/setup</code> で管理者パスワードを設定します。
+            </p>
+</div>
+<div class="paths">
+<article class="path">
+<span class="path__tag">推奨</span>
+<h3>ワンクリックスクリプト</h3>
+<p>リポジトリをクローンしてインストーラーを実行します。Docker を検出し、Docker 内での実行かローカルビルドを選べます。</p>
+<div class="code-light">
+<button aria-label="コピー" class="copy-btn" data-copy-target="#inst-script" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15V5a2 2 0 012-2h10"></path></svg>
+<span class="copy-btn__text">コピー</span>
+</button>
+<code id="inst-script"><span class="tok-cmd">git</span> clone https://github.com/cskwork/scopeweaver.git
+<span class="tok-cmd">cd</span> scopeweaver
+<span class="tok-cmd">./install.sh</span></code>
+</div>
+</article>
+<article class="path">
+<span class="path__tag">docker</span>
+<h3>Docker Compose</h3>
+<p>Postgres パスワードを次に設定します: <code>.env</code>。Compose がソースからイメージをビルドし、Postgres と一緒に起動します。</p>
+<div class="code-light">
+<button aria-label="コピー" class="copy-btn" data-copy-target="#inst-docker" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15V5a2 2 0 012-2h10"></path></svg>
+<span class="copy-btn__text">コピー</span>
+</button>
+<code id="inst-docker"><span class="tok-cmd">cp</span> .env.example .env
+<span class="tok-cmd">docker</span> compose up -d --build</code>
+</div>
+</article>
+<article class="path">
+<span class="path__tag">ビルド済み</span>
+<h3>リリースアーカイブ</h3>
+<p>対応プラットフォームのアーカイブを取得し、DB の接続を設定して、監視スクリプトから起動します。</p>
+<div class="code-light">
+<button aria-label="コピー" class="copy-btn" data-copy-target="#inst-bin" type="button">
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="11" rx="2" width="11" x="9" y="9"></rect><path d="M5 15V5a2 2 0 012-2h10"></path></svg>
+<span class="copy-btn__text">コピー</span>
+</button>
+<code id="inst-bin"><span class="tok-cmd">cp</span> config.example.json config.json
+<span class="tok-cmd">./start.sh</span></code>
+</div>
+<div aria-label="リリースアーカイブ" class="archive">
+<span class="chip">linux amd64</span>
+<span class="chip">linux arm64</span>
+<span class="chip">macos amd64</span>
+<span class="chip">macos arm64</span>
+<span class="chip">windows amd64</span>
+<span class="chip">GHCR の Docker イメージ</span>
+</div>
+</article>
+</div>
+<p class="hero__stack" style="margin-top:1.75rem">
+            すべてのアーカイブに、埋め込みウェブ画面、監視スクリプト、スキル、設定例、エージェントアダプターを同梱します。
+            <a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">v0.1.0 リリースと SHA256SUMS を確認 →</a>
+</p>
+</div>
+</section>
+<!-- ============ REQUIREMENTS ============ -->
+<section aria-labelledby="req-h" class="section" id="requirements">
+<div class="wrap">
+<div class="section__head">
+<h2 id="req-h">最初に必要なもの</h2>
+<p>ScopeWeaver はアプリケーションを提供します。データベースとモデルプロバイダーは利用者が用意します。</p>
+</div>
+<div class="req-grid">
+<div class="req">
+<h3>
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"></path></svg>
+                PostgreSQL
+              </h3>
+<p>接続可能な Postgres データベース。スキーマを埋め込み、起動ごとに冪等に作成します。</p>
+</div>
+<div class="req">
+<h3>
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M12 2a7 7 0 00-4 12.7V18h8v-3.3A7 7 0 0012 2zM9 22h6M10 18v4M14 18v4"></path></svg>
+                モデルプロバイダー
+              </h3>
+<p>別途設定した LLM が必要です。次を設定するか: <code>ANTHROPIC_API_KEY</code> または <code>OPENAI_API_KEY</code>、UI から入力してください。未設定では探索を実行できません。</p>
+</div>
+<div class="req">
+<h3>
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"></path></svg>
+                Node.js 22 以上（アダプター）
+              </h3>
+<p>コーディングエージェント用アダプターにのみ必要です。依存関係を次でインストールします: <code>npm ci</code> 実行する場所: <code>adapters/agent</code>を利用します。</p>
+</div>
+<div class="req">
+<h3>
+<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="14" rx="2" width="20" x="2" y="4"></rect><path d="M8 20h8M12 18v2"></path></svg>
+                ローカルの実験対象
+              </h3>
+<p>自分が所有するシステムを隔離環境で使用してください。ScopeWeaver はオンラインのテストではなく、ローカルの隔離された研究用です。</p>
+</div>
+</div>
+</div>
+</section>
+<!-- ============ LIMITS & CREDITS ============ -->
+<section aria-labelledby="limits-h" class="section" id="limits">
+<div class="wrap">
+<div class="section__head">
+<h2 id="limits-h">率直な制限</h2>
+<p>このリリースの範囲と限界を、リポジトリで確認できる形で示します。</p>
+</div>
+<div class="limits-layout">
+<ul class="limit-list">
+<li><strong>ローカルの隔離環境での研究のみ。</strong> 上流からの使用制限は、許可の有無を問わず、オンラインサービスへのスキャン、検査、攻撃を禁止します。自分のシステムを隔離して使用してください。</li>
+<li><strong>本番運用や有効性は主張しません。</strong> 本番のペネトレーションテストへの準備や、独立して検証したセキュリティ成果を主張するものではありません。</li>
+<li><strong>未検証の実行環境。</strong> Docker イメージと Windows バッチの実行は未検証です。パッケージのテスト用ケースは、実際の Windows 実行を実証しません。</li>
+<li><strong>依存関係の対応が必要。</strong> 対象を絞ったツール更新で、監査指摘のすべてを解消したとは限りません。現在の監査コマンドと残る制限は検証記録を参照してください。</li>
+<li><strong>アダプターはローカルのテスト用実装で検証。</strong> ローカルの要求・応答の契約を証明するだけで、実際のコーディングエージェントとプロバイダー間の実行は独立検証していません。参照: <a href="https://github.com/cskwork/scopeweaver/blob/main/docs/ja/VERIFICATION.md" rel="noopener">検証の詳細</a>を利用します。</li>
+</ul>
+<div>
+<div class="aside-card">
+<span class="tagline-mark">所有者の作業フロー · 匿名化済み</span>
+<h3>確認した作業の連携</h3>
+<p>
+                  所有者のワークスペースで、チャットからのタスク作成、ワーカートレースの確認、韓国語の進捗更新を確認しました。識別情報とセキュリティの検出事項は省いています。
+                </p>
+<p>
+                  作業の連携の証拠であり、独立したセキュリティ評価、検証済みの検出事項、本番運用の準備を示すものではありません。
+                </p>
+</div>
+<div class="aside-card">
+<h3>出典と謝辞</h3>
+<p>
+                  ScopeWeaver は、独立した派生物です。元のプロジェクト:
+                  <a href="https://github.com/Autumn-27/ARTEX" rel="noopener">ARTEX</a>
+                  。基となる上流コミット: <code>160fe13</code>。AGPL-3.0 に基づきます。エージェントの機能は
+                  <a href="https://github.com/Autumn-27/norma" rel="noopener">norma</a>
+                  SDK、資産の同期は
+                  <a href="https://github.com/Autumn-27/ScopeSentry" rel="noopener">ScopeSentry</a>を利用します。
+                </p>
+<p class="credits">
+                  画面は同梱の架空のデモデータで、実際の対象のスキャンではありません。表示字体はセルフホストの Schibsted Grotesk と JetBrains Mono（SIL Open Font License）です。韓国語は読者のシステムのハングル字体を使います。
+                </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="site-footer">
+<div class="wrap">
+<div class="footer-top">
+<a aria-label="ScopeWeaver のホーム" class="brand" href="../">
+<img alt="" height="30" src="../assets/img/scopeweaver.svg" width="30"/>
+            ScopeWeaver
+          </a>
+<nav aria-label="フッター" class="footer-links">
+<a href="https://github.com/cskwork/scopeweaver" rel="noopener">GitHub</a>
+<a href="https://github.com/cskwork/scopeweaver/releases/tag/v0.1.0" rel="noopener">v0.1.0 リリース</a>
+<a href="https://github.com/cskwork/scopeweaver/tree/main/docs" rel="noopener">ドキュメント</a>
+<a href="https://github.com/cskwork/scopeweaver/blob/main/docs/ja/agent-adapter.md" rel="noopener">エージェントアダプター</a>
+<a href="https://github.com/cskwork/scopeweaver/blob/main/docs/ja/PROVENANCE.md" rel="noopener">出典</a>
+<a href="https://github.com/cskwork/scopeweaver/blob/main/docs/ja/VERIFICATION.md" rel="noopener">検証</a>
+</nav>
+</div>
+<div class="footer-bottom">
+<p>
+            ScopeWeaver は AGPL-3.0 に基づく ARTEX の派生物です。ネットワークで提供する変更版は、ソースを公開する必要があります。ローカルの隔離された学習・検証にのみ使用してください。
+          </p>
+<p>この静的ページは紹介用です。実際のスキャンやチャットのサービスではありません。</p>
+</div>
+</div>
+</footer>
+<script defer="" src="../assets/js/app.js"></script>
+</body>
+</html>

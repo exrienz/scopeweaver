@@ -34,7 +34,11 @@ func TestAgentAdapterE2E(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer m.Close()
+	defer func() {
+		if err := m.Close(); err != nil {
+			t.Errorf("close fixture manager: %v", err)
+		}
+	}()
 	var database string
 	if err := m.pg.QueryRow("SELECT current_database()").Scan(&database); err != nil || !strings.HasPrefix(database, "scopeweaver_adapter_") {
 		t.Fatalf("expected isolated database, got %q: %v", database, err)
@@ -52,9 +56,17 @@ func TestAgentAdapterE2E(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	dir := t.TempDir()
 	s := New(ctx, m, dir, dir, dir)
+	defer func() {
+		cancel()
+		// Task cancellation can still write; join it before closing the pool.
+		drainCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stop()
+		if err := s.DrainChats(drainCtx); err != nil {
+			t.Errorf("drain fixture server: %v", err)
+		}
+	}()
 	httpServer := httptest.NewServer(s.Handler())
 	defer httpServer.Close()
 	const password = "scopeweaver-adapter-disposable-test"

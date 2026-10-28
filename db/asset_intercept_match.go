@@ -51,7 +51,7 @@ func (r AssetInterceptRule) ReasonForLanguage(lang locale.Lang) string {
 }
 
 // matchOne tests one enabled rule against domain/IP/URL candidates and returns the matching value.
-func matchOne(r AssetInterceptRule, domains, ips, urls []string) (string, bool) {
+func matchOne(r AssetInterceptRule, domains, ips, urls []string, allow bool) (string, bool) {
 	p := strings.TrimSpace(r.Pattern)
 	if p == "" {
 		return "", false
@@ -76,9 +76,17 @@ func matchOne(r AssetInterceptRule, domains, ips, urls []string) (string, bool) 
 			}
 		}
 	case "fuzzy_domain":
-		lp := strings.ToLower(p)
+		lp := strings.Trim(strings.ToLower(p), ".")
+		if lp == "" {
+			return "", false
+		}
 		for _, d := range domains {
-			if d != "" && strings.Contains(strings.ToLower(d), lp) {
+			domain := strings.Trim(strings.ToLower(strings.TrimSpace(d)), ".")
+			matched := strings.Contains("."+domain+".", "."+lp+".")
+			if allow {
+				matched = domain == lp || strings.HasSuffix(domain, "."+lp)
+			}
+			if matched {
 				return d, true
 			}
 		}
@@ -112,11 +120,15 @@ func matchOne(r AssetInterceptRule, domains, ips, urls []string) (string, bool) 
 // MatchAssetInterceptRules returns the first enabled matching rule and the matched value.
 // insert_assets uses this with raw input (assetInputItem not yet persisted).
 func MatchAssetInterceptRules(rules []AssetInterceptRule, domains, ips, urls []string) (AssetInterceptRule, string, bool) {
+	return matchAssetInterceptRules(rules, domains, ips, urls, false)
+}
+
+func matchAssetInterceptRules(rules []AssetInterceptRule, domains, ips, urls []string, allow bool) (AssetInterceptRule, string, bool) {
 	for _, r := range rules {
 		if !r.Enabled {
 			continue
 		}
-		if v, ok := matchOne(r, domains, ips, urls); ok {
+		if v, ok := matchOne(r, domains, ips, urls, allow); ok {
 			return r, v, true
 		}
 	}
@@ -204,7 +216,7 @@ func EvaluateAssetGateForLanguage(lang locale.Lang, blockRules, allowRules []Ass
 		return AssetGateDecision{Allowed: false, Reason: rule.ReasonForLanguage(lang)}
 	}
 	if hasEnabledRule(allowRules) {
-		if _, _, ok := MatchAssetInterceptRules(allowRules, domains, ips, urls); !ok {
+		if _, _, ok := matchAssetInterceptRules(allowRules, domains, ips, urls, true); !ok {
 			return AssetGateDecision{Allowed: false, Reason: locale.Text(lang, "Testing is not allowed outside the task's allowed scope (allowlist)")}
 		}
 	}

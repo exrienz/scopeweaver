@@ -1,0 +1,3 @@
+{
+  "reporterToolCallMessage": "report_finding acaba de registrar un hallazgo. Lee finding_id (registro independiente) y finding_node_id (nodo de exploración) del JSON devuelto. Usa get_finding_traffic(finding_id) para leer la lista de pruebas y versión; una lista vacía es válida y no bloquea el informe. Si las indicaciones de ejecución activan la vinculación automática, verifica y vincula el tráfico de este hallazgo antes de leer. Usa finding_node_id para detalles de nodo. Finalmente guarda con update_finding_report(finding_id=finding_node_id, report, evidence_version=la versión realmente leída). evidence_version es obligatorio o el informe seguirá obsoleto. Nunca mezcles los dos espacios de nombres de ID."
+}

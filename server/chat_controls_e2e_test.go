@@ -1,9 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +21,7 @@ import (
 	"github.com/Autumn-27/artex/chatstate"
 	"github.com/Autumn-27/artex/db"
 	"github.com/Autumn-27/artex/internal/dbtest"
+	"github.com/Autumn-27/artex/locale"
 	"github.com/Autumn-27/norma/llm"
 	actool "github.com/Autumn-27/norma/tool"
 	"github.com/Autumn-27/norma/transcript"
@@ -34,6 +37,9 @@ type chatBrowserFixture struct {
 	toolHold    chan struct{}
 	toolStarted bool
 	markerCalls int
+	providers   []map[string]any
+	snapshots   []map[string]any
+	admissions  []map[string]any
 }
 
 func (f *chatBrowserFixture) release() {
@@ -49,6 +55,16 @@ func (f *chatBrowserFixture) release() {
 	}
 }
 func (f *chatBrowserFixture) model(w http.ResponseWriter, r *http.Request) {
+	f.mu.Lock()
+	provider := map[string]any{"ordinal": len(f.providers) + 1, "session": r.Header.Get("X-Chat-E2E-Session"), "arrival": time.Now().UTC().Format(time.RFC3339Nano)}
+	f.providers = append(f.providers, provider)
+	f.mu.Unlock()
+	defer func() {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		provider["completion"] = time.Now().UTC().Format(time.RFC3339Nano)
+		provider["context_error"] = fmt.Sprint(r.Context().Err())
+	}()
 	var in struct {
 		Stream   bool             `json:"stream"`
 		Messages []map[string]any `json:"messages"`
@@ -64,6 +80,10 @@ func (f *chatBrowserFixture) model(w http.ResponseWriter, r *http.Request) {
 	f.calls++
 	n := f.calls
 	f.requests = append(f.requests, string(raw))
+	provider["count"] = n
+	provider["count_assignment"] = time.Now().UTC().Format(time.RFC3339Nano)
+	provider["messages"] = json.RawMessage(raw)
+	provider["stream"] = in.Stream
 	held := f.hold
 	if main && f.holdArmed {
 		f.holdArmed = false
@@ -164,6 +184,36 @@ func TestChatControlsE2E(t *testing.T) {
 		t.Fatal(err)
 	}
 	fixture := &chatBrowserFixture{}
+	// Test cleanup runs after the existing deferred app/model/listener teardown.
+	// A missing final file (timeout, cancellation, write failure) is incomplete evidence.
+	t.Cleanup(func() {
+		dir, pathErr := filepath.Abs(filepath.Join("..", "dist", "chat-e2e"))
+		if pathErr != nil {
+			t.Errorf("diagnostic path: %v", pathErr)
+			return
+		}
+		suite := "standard"
+		if os.Getenv("CHAT_E2E_SUITE") == "draft" {
+			suite = "draft"
+		}
+		fixture.mu.Lock()
+		data, marshalErr := json.Marshal(map[string]any{"schema": 1, "suite": suite, "server_time": time.Now().UTC().Format(time.RFC3339Nano), "calls": fixture.calls, "provider_ordinal": len(fixture.providers), "providers": fixture.providers, "snapshots": fixture.snapshots, "admissions": fixture.admissions})
+		fixture.mu.Unlock()
+		if marshalErr != nil {
+			t.Errorf("diagnostic marshal: %v", marshalErr)
+			return
+		}
+		if dirErr := os.MkdirAll(dir, 0700); dirErr != nil {
+			t.Errorf("diagnostic directory: %v", dirErr)
+			return
+		}
+		file := filepath.Join(dir, "fixture-ledger-"+suite+".json")
+		if writeErr := os.WriteFile(file, data, 0600); writeErr != nil {
+			t.Errorf("diagnostic write %s: %v", file, writeErr)
+			return
+		}
+		t.Logf("diagnostic final ledger: %s (%d bytes)", file, len(data))
+	})
 	model := httptest.NewServer(http.HandlerFunc(fixture.model))
 	defer model.Close()
 	defer fixture.release()
@@ -256,9 +306,15 @@ func TestChatControlsE2E(t *testing.T) {
 			fixture.markerCalls = 0
 			fixture.mu.Unlock()
 		case "stats":
+			var in struct {
+				Diagnostic map[string]any `json:"diagnostic"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&in)
 			fixture.mu.Lock()
 			defer fixture.mu.Unlock()
-			writeJSON(w, 200, map[string]any{"calls": fixture.calls, "requests": append([]string{}, fixture.requests...), "tool_started": fixture.toolStarted, "marker_calls": fixture.markerCalls})
+			snapshot := map[string]any{"case": in.Diagnostic["case"], "operation": in.Diagnostic["operation"], "boundary": in.Diagnostic["boundary"], "read": in.Diagnostic["read"], "marker": in.Diagnostic["marker"], "calls": fixture.calls, "provider_ordinal": len(fixture.providers), "server_time": time.Now().UTC().Format(time.RFC3339Nano)}
+			fixture.snapshots = append(fixture.snapshots, snapshot)
+			writeJSON(w, 200, map[string]any{"calls": fixture.calls, "requests": append([]string{}, fixture.requests...), "tool_started": fixture.toolStarted, "marker_calls": fixture.markerCalls, "diagnostic": snapshot})
 			return
 		case "budget":
 			var in struct {
@@ -380,15 +436,42 @@ func TestChatControlsE2E(t *testing.T) {
 	files := http.FileServer(http.Dir("../web/out"))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") {
-			getApp().Handler().ServeHTTP(w, r)
+			// Observe existing control traffic without extra application/API requests.
+			relevant := strings.Contains(r.URL.Path, "/controls") || r.URL.Path == "/api/chat" || (r.Method == "POST" && strings.HasPrefix(r.URL.Path, "/api/conversations/") && strings.HasSuffix(r.URL.Path, "/messages")) || (r.Method != "GET" && (r.URL.Path == "/api/tasks" || r.URL.Path == "/api/conversations" || strings.HasSuffix(r.URL.Path, "/control") || r.URL.Path == "/api/exploration/main-session/new"))
+			if !relevant {
+				getApp().Handler().ServeHTTP(w, r)
+				return
+			}
+			var body bytes.Buffer
+			if r.Body != nil {
+				r.Body = &chatDiagnosticBody{Reader: io.TeeReader(r.Body, &body), Closer: r.Body}
+			}
+			observed := &chatDiagnosticResponse{ResponseWriter: w}
+			fixture.mu.Lock()
+			admission := map[string]any{"ordinal": len(fixture.admissions) + 1, "arrival": time.Now().UTC().Format(time.RFC3339Nano), "method": r.Method, "path": r.URL.Path, "query": r.URL.RawQuery}
+			fixture.admissions = append(fixture.admissions, admission)
+			fixture.mu.Unlock()
+			defer func() {
+				fixture.mu.Lock()
+				defer fixture.mu.Unlock()
+				admission["completion"] = time.Now().UTC().Format(time.RFC3339Nano)
+				admission["status"] = observed.status
+				admission["request_body_read"] = body.String()
+				admission["response_body"] = observed.body.String()
+				admission["context_error"] = fmt.Sprint(r.Context().Err())
+			}()
+			getApp().Handler().ServeHTTP(observed, r)
 		} else {
 			files.ServeHTTP(w, r)
 		}
 	})
 	listener := httptest.NewServer(mux)
 	defer listener.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 9*time.Minute)
+	// Preserve the original three-minute budget per locale as the matrix grows.
+	browserTimeout := 3 * time.Minute * time.Duration(len(locale.Languages()))
+	ctx, cancel := context.WithTimeout(context.Background(), browserTimeout)
 	defer cancel()
+	t.Logf("chat browser gate budget: %s (%d locales)", browserTimeout, len(locale.Languages()))
 	command := exec.CommandContext(ctx, "node", "../e2e/chat-controls-runner.mjs")
 	artifacts, _ := filepath.Abs(filepath.Join("..", "dist", "chat-e2e"))
 	if err = os.MkdirAll(artifacts, 0700); err != nil {
@@ -398,6 +481,9 @@ func TestChatControlsE2E(t *testing.T) {
 	output, err := command.CombinedOutput()
 	t.Log(string(output))
 	if err != nil {
+		if ctx.Err() != nil {
+			t.Fatalf("chat browser gate exceeded %s: %v", browserTimeout, ctx.Err())
+		}
 		t.Fatalf("chat browser gate failed: %v", err)
 	}
 }
@@ -406,4 +492,30 @@ func nullableFixtureID(id int64) any {
 		return nil
 	}
 	return id
+}
+
+// Only the finite JSON control routes above use this writer; SSE routes bypass it.
+type chatDiagnosticBody struct {
+	io.Reader
+	io.Closer
+}
+type chatDiagnosticResponse struct {
+	http.ResponseWriter
+	status int
+	body   bytes.Buffer
+}
+
+func (w *chatDiagnosticResponse) WriteHeader(status int) {
+	if w.status == 0 {
+		w.status = status
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+func (w *chatDiagnosticResponse) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	n, err := w.ResponseWriter.Write(b)
+	w.body.Write(b[:n])
+	return n, err
 }

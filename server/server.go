@@ -26,6 +26,7 @@ import (
 	"github.com/Autumn-27/artex/llmpool"
 	"github.com/Autumn-27/artex/llmrec"
 	"github.com/Autumn-27/artex/locale"
+	"github.com/Autumn-27/artex/opencodesdk"
 	"github.com/Autumn-27/artex/report"
 	"github.com/Autumn-27/artex/traffic"
 	"github.com/Autumn-27/norma/llm"
@@ -72,6 +73,8 @@ type Server struct {
 	chatBusy      map[string]bool
 	chatClosing   bool
 	chatWG        sync.WaitGroup
+	httpWG        sync.WaitGroup
+	chatDrainOnce sync.Once
 	chatDrainDone chan struct{}
 	chatDrainErr  error
 	// chatCancel holds the cancel func for each in-flight conversation run (keyed by
@@ -125,7 +128,9 @@ type Server struct {
 	// channel coalesces enqueue bursts; the database remains the source of truth.
 	archiveWake chan struct{}
 	archiveWG   sync.WaitGroup
-	side        *sideQuestionState
+	// Startup and periodic DB users must finish before the manager closes stores.
+	backgroundWG sync.WaitGroup
+	side         *sideQuestionState
 }
 
 // provEntry is a cached provider + its config for one LLM profile id.
@@ -165,8 +170,10 @@ func newServer(ctx context.Context, m *Manager, skillDir string, dataDir string,
 		chatCancel: map[string]context.CancelCauseFunc{}, triggerQ: map[string][]triggeredRun{},
 		triggerActive: map[string]int{}, triggerCfg: map[string]triggerBehavior{},
 		profChatAgents: map[int64]*agent.ChatAgent{},
-		provByProfile:  map[int64]*provEntry{}, llmHealth: newLLMHealthRegistry(m.pg),
-		taskAgents: map[string]*taskAgentBundle{}, archiveWake: make(chan struct{}, 1)}
+		provByProfile:  map[int64]*provEntry{},
+		taskAgents:     map[string]*taskAgentBundle{}, archiveWake: make(chan struct{}, 1)}
+	s.ctx = agent.WithCallbackOwner(s.ctx, s.reserveBackgroundWork)
+	s.llmHealth = newLLMHealthRegistry(m.pg, s.startBackgroundWork)
 	// Recovery must finish before any internal producer or task runtime starts.
 	if err := s.recoverChatControls(); err != nil {
 		return nil, fmt.Errorf("chat startup recovery: %w", err)
@@ -245,15 +252,15 @@ func newServer(ctx context.Context, m *Manager, skillDir string, dataDir string,
 		if err := s.seedFindingRetester(); err != nil {
 			log.Printf("[retester] seed: %v", err)
 		}
-		go s.evidenceStore().RunGC(s.ctx)
+		s.backgroundWG.Go(func() { s.evidenceStore().RunGC(s.ctx) })
 		s.seedPythonInterpreter() // Detect and store the Python interpreter for custom scripts at startup, only when empty.
 		// Finding notification delivery runs independently beside Scheduler: its three-second responsiveness
 		// differs from trigger scheduling, and a stuck delivery must not block agent triggers.
-		go newNotifier(s).Run(s.ctx)
+		s.backgroundWG.Go(func() { newNotifier(s).Run(s.ctx) })
 		// Fill the tool cache for any enabled MCP that has none yet (notably the
 		// seeded browser MCP on first run). Async so it never blocks startup.
-		go s.discoverEmptyMCPsOnStartup()
-		logSink.SetDB(ctx, m.pg) // restore last 100 log rows and enable async persistence
+		s.backgroundWG.Go(s.discoverEmptyMCPsOnStartup)
+		logSink.SetDB(ctx, m.pg, &s.backgroundWG) // restore last 100 log rows and enable async persistence
 	}
 	// precedence: persisted DB config > env.
 	if cfg, ok := s.loadLLMConfig(); ok {
@@ -262,7 +269,7 @@ func newServer(ctx context.Context, m *Manager, skillDir string, dataDir string,
 		} else {
 			log.Printf("[engine] LLM configured from DB: %s / %s", cfg.Provider(), cfg.Model)
 		}
-	} else if cfg, ok := agent.FromEnv(); ok {
+	} else if cfg, ok := s.environmentLLMFallback(); ok {
 		if err := s.applyLLM(cfg); err != nil {
 			log.Printf("[engine] env provider init failed — engine idle: %v", err)
 		} else {
@@ -275,11 +282,11 @@ func newServer(ctx context.Context, m *Manager, skillDir string, dataDir string,
 	if err := s.resumeChatControls(); err != nil {
 		log.Printf("[chat] %v", err)
 	}
-	go s.reconcileConcurrency()
+	s.backgroundWG.Go(s.reconcileConcurrency)
 	s.startTaskArchiveWorker()
 	s.wireInterceptReviewer() // LLM fallback approval judges commands that match no interception rule.
 	if m.pg != nil {
-		go newScheduler(s).Run(s.ctx) // Start admissions only after recovery and task restoration.
+		m.startScheduler(s) // Register ownership before launch, after recovery and task restoration.
 	}
 	return s, nil
 }
@@ -424,6 +431,7 @@ func (s *Server) saveLLMConfig(cfg agent.Config) error {
 func (s *Server) reapplyActiveProfile() {
 	cfg, ok := s.loadLLMConfig()
 	if !ok {
+		s.clearUnavailableSDKFallback(cfg)
 		return
 	}
 	if err := s.applyLLM(cfg); err != nil {
@@ -993,7 +1001,7 @@ func (s *Server) Handler() http.Handler {
 	root := http.NewServeMux()
 	root.Handle("/api/", api)
 	root.Handle("/", s.webuiHandler())
-	return root
+	return s.trackHTTP(root)
 }
 
 // --- handlers ---
@@ -1391,7 +1399,14 @@ func (s *Server) setLLM(w http.ResponseWriter, r *http.Request) {
 	}
 	if cfg.APIKey == "" && !cfg.Ready() {
 		s.cfgMu.Lock()
-		cfg.APIKey = s.llmCfg.APIKey // keep existing key if not re-entered
+		active := s.llmCfg
+		if cfg.Provider() == opencodesdk.Format {
+			if sdkCredentialCompatible(cfg, active.Provider(), active.BaseURL) {
+				cfg.APIKey = active.APIKey
+			}
+		} else if active.Provider() != opencodesdk.Format {
+			cfg.APIKey = active.APIKey
+		}
 		s.cfgMu.Unlock()
 	}
 	if !cfg.Ready() {
@@ -1451,6 +1466,9 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 	// reasoning_effort/thinking field fails the test too (no false "test ok, run 400").
 	cfg.ThinkingType = req.ThinkingType
 	cfg.ReasoningEffort = req.ReasoningEffort
+	if cfg.Provider() == opencodesdk.Format && req.MaxTokens > 0 {
+		cfg.MaxTokens = req.MaxTokens
+	}
 	// Test the profile's chosen transport mode so endpoints supporting only one mode fail here,
 	// rather than passing the test but failing in an actual conversation.
 	if req.Streaming != nil {
@@ -1466,7 +1484,7 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 	// Likewise, fall back to the stored custom session-header name when omitted by the form.
 	if req.ProfileID != nil {
 		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil {
-			if cfg.APIKey == "" && (cfg.Provider() != "ollama" || p.Format == "ollama") {
+			if cfg.APIKey == "" && (cfg.Provider() != "ollama" || p.Format == "ollama") && sdkCredentialCompatible(cfg, p.Format, p.BaseURL) {
 				cfg.APIKey = p.APIKey
 			}
 			if cfg.SessionHeaderKey == "" {
@@ -1495,7 +1513,7 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 		// Reuse local gateway credentials only for the same format and transport target.
 		// Other local endpoints and native Ollama remain deliberately keyless.
 		sameGateway := cfg.Provider() != "ollama" && cfg.Format == active.Format && cfg.BaseURL == active.BaseURL && cfg.Proxy == active.Proxy
-		if !cfg.Ready() || sameGateway {
+		if (cfg.Provider() == opencodesdk.Format && sdkCredentialCompatible(cfg, active.Provider(), active.BaseURL)) || (cfg.Provider() != opencodesdk.Format && active.Provider() != opencodesdk.Format && (!cfg.Ready() || sameGateway)) {
 			cfg.APIKey = active.APIKey
 		}
 	}
@@ -1646,6 +1664,12 @@ func (s *Server) validateTaskProfileIDs(ids []int64) error {
 	return nil
 }
 
+// HTTP Close can leave handlers running; serialize their background admission
+// with DrainChats so none can register after its Wait begins.
+func (s *Server) startBackgroundReconcile() {
+	s.startBackgroundWork(s.reconcileConcurrency)
+}
+
 func (s *Server) updateTaskLLMProfiles(w http.ResponseWriter, r *http.Request) {
 	t, ok := s.m.Task(r.PathValue("id"))
 	if !ok {
@@ -1681,7 +1705,7 @@ func (s *Server) updateTaskLLMProfiles(w http.ResponseWriter, r *http.Request) {
 	// live slot and postpones an unavailable task's pause/queue transition until
 	// the call returns; a nudge lets an idle running task resume promptly.
 	t.Notify()
-	go s.reconcileConcurrency()
+	s.startBackgroundReconcile()
 	llmState := t.llmStateSnapshot()
 	result := map[string]any{
 		"id": t.ID, "llm_profile_ids": llmState.ProfileIDs,
@@ -3595,7 +3619,7 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Reconcile immediately: disabling admits all queued tasks; raising the limit fills slots without waiting for a tick.
-		go s.reconcileConcurrency()
+		s.startBackgroundReconcile()
 	}
 	if req.PythonInterp != nil {
 		if err := s.m.pg.SetSetting(settingPythonInterp, strings.TrimSpace(*req.PythonInterp)); err != nil {

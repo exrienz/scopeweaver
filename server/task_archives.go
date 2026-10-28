@@ -66,6 +66,9 @@ func (s *Server) startTaskArchiveWorker() {
 		ticker := time.NewTicker(taskArchivePollInterval)
 		defer ticker.Stop()
 		for {
+			if s.ctx.Err() != nil {
+				return
+			}
 			if err := s.runOneTaskArchiveJob(); err != nil {
 				log.Printf(locale.Text(locale.ServerDefault(), "[task-archive] worker: %v"), err)
 			}

@@ -6,7 +6,7 @@ import definition from "../../../locale/definitions.json" with { type: "json" };
 
 // The union provides compile-time catalog coverage; the shared declaration
 // controls runtime support, labels, Intl mappings and aliases.
-export type Locale = "en" | "ko" | "zh-Hans";
+export type Locale = "en" | "ko" | "zh-Hans" | "zh-Hant" | "ja" | "es";
 export const LOCALE_DEFINITIONS = definition.locales;
 export const LOCALES = definition.locales.map(({ id }) => id as Locale);
 export const DEFAULT_LOCALE = definition.default as Locale;

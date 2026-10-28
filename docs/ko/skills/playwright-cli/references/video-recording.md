@@ -1,6 +1,6 @@
 # 영상 기록
 
-[English](../../../../../skills/playwright-cli/references/video-recording.md)
+[English](../../../../../skills/playwright-cli/references/video-recording.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/video-recording.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/video-recording.md) · [日本語](../../../../ja/skills/playwright-cli/references/video-recording.md) · [Español](../../../../es/skills/playwright-cli/references/video-recording.md)
 
 브라우저 자동화를 디버깅, 문서, 검증용 영상으로 기록합니다. 출력은 WebM(VP8/VP9)입니다.
 

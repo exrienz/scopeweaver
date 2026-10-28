@@ -1,6 +1,6 @@
 # v0.2.1 license notice packaging repair
 
-[한국어](ko/release-notice-repair.md)
+English · [한국어](ko/release-notice-repair.md) · [简体中文](zh-Hans/release-notice-repair.md) · [繁體中文](zh-Hant/release-notice-repair.md) · [日本語](ja/release-notice-repair.md) · [Español](es/release-notice-repair.md)
 
 `repair-release-notices.yml` is a manual, one-time correction for the existing v0.2.1
 release. It adds `THIRD_PARTY_NOTICES.txt` to the five published ZIPs and to the

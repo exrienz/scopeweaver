@@ -1,6 +1,191 @@
 # Verification and known limitations
 
-[한국어](ko/VERIFICATION.md)
+English · [한국어](ko/VERIFICATION.md) · [简体中文](zh-Hans/VERIFICATION.md) · [繁體中文](zh-Hant/VERIFICATION.md) · [日本語](ja/VERIFICATION.md) · [Español](es/VERIFICATION.md)
+
+## Current-dev PR #40 reconstruction — 2026-10-25
+
+Only the four intended commits from `aebea3e..9b04754` were first rebuilt on `f354c920`; divergent branch history was not replayed. The candidate was then rebased onto `7af06f1`, preserving its six-language integration. Current integration requires exactly **1,987** production keys with raw English, Korean, Simplified Chinese, Traditional Chinese, Japanese and Spanish translations. Existing OpenCode environment-key isolation, session-header precedence and User-Agent defaults are retained.
+
+Broader cancellation/race coverage exposed an existing unsynchronized planner result: the streaming session can return during pause while the real `prove_goal` handler is still setting `GoalMet` and its reason. Both terminal tool writers and the planner's result snapshot now share a private mutex. This preserves the exported fields, authentic tool/terminal receipts and current pause-versus-completion precedence; it adds no provider request or production schema change.
+
+The terminal-proof gate also requires an **authentic successful SDK tool-result receipt** matching the marked tool-use ID and originating model response. The private capture observer runs before the next compaction or inference boundary; handler completion or a `PostToolUse` hook alone cannot qualify it. The adversarial regression used real `goal_met`, a **30 ms** run budget and a **120 ms** post-tool hook: the old gate swallowed settlement after an interrupted receipt, making **1 provider call instead of 2**, while the native reason remained `timeout` and the error remained nil. The corrected path keeps that interrupted receipt, permits the real settlement call and its compaction, and rejects late-hook qualification. A second synchronized regression holds the hook until capture observes the interruption, proving the real handler ran before the timeout receipt; normal successful proof, parent cancellation, reactive overflow and late-origin guards remain covered. See [terminal-proof regressions](../agent/terminal_proof_test.go).
+
+The initial reconstruction still had an inherited shutdown gap: on untouched `f354c920`, `TestMainServeFailureRunsShutdown` failed **3 of 10** isolated runs, including scheduler writes after database close. The follow-up repair registers scheduler ownership before launch. `Manager.Close` cancels and joins schedulers outside the manager lock for at most **5 seconds** before stopping the log writer and closing the database. If scheduler SQL remains blocked, Close returns `context.DeadlineExceeded` and **keeps the database open**; after the work finishes, a retry can close it. The CLI already reports a close failure and exits 1. This does not claim that existing non-context SQL calls become cancelable. A pre-canceled scheduler no longer initializes watermarks or starts another tick. The [held-SQL regression](../server/scheduler_shutdown_test.go) checks concurrent close timeouts, an open database while work is active, and successful concurrent retries after release. A first parallel all-package run also failed the log-sink test's global row-count assertion while other package subprocesses used the same database; cross-package interference is a hypothesis, so final verification follows CI's separate disposable database per package. These historical receipts do not claim final exact-head hosted CI, native Windows or live-provider verification.
+
+The integrated candidate uses web Next.js **16.4.3** and Zod **4.6.7**, and adapter Zod **4.6.7**, with compatible lockfile fixes for body-parser **2.4.0**, fast-uri **3.1.9**, ip-address **10.7.4** and qs **6.16.1**. The adapter SDK pin remains **1.32.0**. After the six-language rebase, fresh `npm ci` passed for both packages; web tests passed **75/75**, the cold static build exported **31 pages**, adapter tests passed **18/18** and its syntax check passed. The earlier 72/7-test receipts remain historical evidence. Both current `npm audit --audit-level=low` checks report **0 vulnerabilities**. These results supersede the initial Next.js 16.4.0 advisory/build-failure limitation; the original receipts remain historical evidence. Native paste/undo browser keys now use `ControlOrMeta+V` and `ControlOrMeta+Z`, preserving assertions and timeouts. Final canonical browser runs and exact-head hosted CI are separate gates and are not claimed here.
+
+Compatibility checks after the six-language integration must cover prior-stock planner/worker prompts and `add_intent` schemas from every shipped source language and each requested output language. Additional zh-Hant/ja/es fixtures come from immutable pre-PR40 dev `7af06f1`. Exact recognition must preserve edited prompts, customized schema fields/defaults, stored rows and raw history. This extends the original three-language verification described below.
+
+### Patched SDK and model-specific context windows
+
+The nested Norma suite is required in the backend CI job. Run
+`(cd third_party/norma && go test ./... -count=1)` separately from root packages;
+see [source and modification notices](PROVENANCE.md#norma-execution-and-compaction-fixes--2026-10-25).
+
+The regression set covers the original 30 ms / 120 ms interrupted-tool race,
+small-window pacing and long-session bounds, worthwhile summary consolidation,
+actual overflow retry views, monotonic learned ceilings and output errors that
+must not trigger context recovery. Existing numeric bounds and original history
+are retained. The old assertion that 40K cannot reach tier two was already false
+on unchanged upstream; its replacement requires actual consolidation, token
+reclamation and bounded summaries using the same fixture.
+
+`TestNoaRetainsConfiguredModelContextWindow` exercises actual Noa sessions at
+40K, 128K, 200K, 250K, 400K and 1M. Before the host fix, all non-200K cases became
+200K. `enableNoa` now passes the positive resolved profile window before clearing
+the replaced compactor. Separate tests cover missing-window fallback, disabled
+Noa, damaged-state recovery and the existing local Ollama policy. `MaxTokens`
+continues to limit output independently. The 200K fallback is for an unset
+window; it is not a universal model limit. SDK default values at 200K and above
+remain unchanged, while worthwhile-summary count eligibility intentionally
+changes across windows.
+
+## Trigger evidence in the first planner request (2026-10-18)
+
+Local candidate on original head `ffe260435fed6576394d613991aaf6e8010d3f48`, with the shared CLI correction backported. Normally a finding or completed-worker event wakes the planner with trigger summaries and a compact `graph_overview`; `prove_goal` still requires the recorded evidence for every goal condition. The compact entries lacked full finding/fact fields, so reading `node_detail` before proof was legitimate.
+
+Abridged actual change in [Planner.Plan](../agent/planner.go), with unchanged intervening task-context setup omitted:
+
+```go
+// Before
+situational := renderTriggers(ts, triggers) + renderGraphOverview(tsx.graphOverviewData())
+// After
+overview := tsx.graphOverviewData()
+situational := renderTriggers(ts, triggers) + renderGraphOverview(overview)
+// After ensureRunDir and WithReviewContext:
+situational += renderPlannerEvidence(ctx, overview, triggers, tools, ts.ID(), taskDir)
+```
+
+The first new line captures the existing bounded overview once; the second renders that same snapshot. The last line appends full detail for its current-exploration fact/finding candidates yielded by concrete `finding`/`done` trigger intents, after task/review context exists. It does not traverse `related_tasks` or expand global lineage. The [attachment implementation](../agent/planner_evidence.go) makes at most **4 read attempts** and admits whole nodes only within **32,768 UTF-8 bytes for the entire attachment**, including its localized header, JSON envelope and `omitted_count`; an oversized node is omitted rather than truncated. Repeated candidates are deduplicated.
+
+Only the final resolved `node_detail` capability may read: its schema must accept the input, `IsReadOnly` must hold, and permissions must explicitly allow an unchanged input. Wrappers, defaults, metering, restricted results and errors remain effective; unsafe or incomplete results are omitted with no raw-helper fallback. The header is complete in EN/KO/zh-Hans and labels recorded content as untrusted observations. Existing explicit reads, including associated direct-source nodes, retain their original access rules.
+
+Concrete row from the **CLI-owned synthetic loopback R22 lab**, not an original-production incident: goal `2` remained open after intent `3` completed one owned GET and persisted fact `4` plus finding `5`. The goal required the exact finding name `SYNTHETIC LAB ONLY public debug marker`, severity `low`, marker and observations. At **2026-10-17 22:42:31+09:00**, the planner legitimately read `node_detail` `5` and `4` for those missing full fields. Harness cleanup paused it at **22:42:54+09:00** before proof; this was not a human pause. R22 failed after **470.50 seconds overall** under the unchanged **420-second task budget**. The underlying model/provider latency cause is **unknown**. With the correction, eligible full details for those same snapshot candidates reach the first request of the triggered round; they do not establish proof by themselves.
+
+| Local candidate check | Observed result |
+| --- | --- |
+| Original complete `agent` package, exact production source without overlay | 598 tests/subtests passed, 0 failures/skips; CLI equivalent 607 passed, 0 failures/skips |
+| New regressions in three `planner_evidence*test.go` files | 31 test/subtest passes; actual `Planner.Plan` streaming/nonstreaming first-request equality, nine permission cases, count/byte bounds, deduplication/isolation, missing/deleted/late/hidden evidence, explicit recovery, no automatic proof and multiple goals |
+| Original focused server proof/locale checks and complete `locale` package | 5 and 19 passed respectively, 0 failures/skips; strict completeness retained for **1,986 keys × 3 languages**, updating the expected count from 1,985 for the new header |
+| Original `go build ./...`, `go vet ./...` | Both native exit 0 |
+| Linux `-race`, current equivalent CLI source | Focused checks 49 passed and complete `agent` package 607 passed, 0 failures/skips; both actual Go exits 0, no `DATA RACE`. All 1,175 snapshot source files verified; this is not an original-module run |
+| Real packaged CLI loopback acceptance, all five cases | Native exit 0 for core 19.14s, GLM LOW 82.63s, Flash LOW 114.84s, OAuth LOW 108.12s and Flash HIGH 317.83s, each at the unchanged 420-second task budget. These single lab runs are not a performance comparison |
+
+The unchanged original baseline failed the streaming and nonstreaming missing-context assertions (two leaf failures plus their parent), without setup failure. Controlled-provider usage in regression fixtures is synthetic, not paid-token evidence. Real `prove_goal`, authentic usage/receipts and the existing terminal proof gate remain required; phase, worker, effort, deadline and retry behavior are unchanged. Counterexample: a disabled, restricted, missing, oversized, untriggered or inherited node receives no automatic full detail. When available, an explicit read can recover omitted/fresh evidence; reading data alone cannot complete a goal, and proving one of multiple goals cannot complete the task.
+
+These are local working-tree results, not exact-new-head CI. The unchanged Windows `TestChatBranchCopyRejectsDestinationSymlink` privilege failure also reproduced on CLI baseline `650dc82910e5e36668161a5276455506f64713fe`; no check was weakened, and full native-server success is not claimed. All seven required hosted checks on the new candidate remain pending. PR #40 remains unmerged with final human review pending; this section claims no publication or release. No public API, schema or migration changes are introduced. Earlier dated sections retain their historical results.
+
+## Chat context readiness (2026-10-17)
+
+Local UI candidate on top of PR #40 head c9fb642. The inspector can open before its initial controls request finishes. Previously it identified an unresolved session as draft, then treated the first resolved session as a switch and closed the panel. The Chinese desktop task case failed with an unstable, then detached close button in [checks run 39031048389](https://github.com/cskwork/scopeweaver/actions/runs/39031048389). That hosted head remains failure evidence; these new results are local.
+
+Abridged reset logic (binding is the requested controls key; session is its resolved identity):
+~~~ts
+// Before: every change from draft to resolved identity ran the reset.
+epoch.current++;
+setOpen(false);
+// After: qualify the change before the existing reset.
+const previous = hydrated.current;
+hydrated.current = { binding, session };
+if (previous.binding === binding && !previous.session) return;
+epoch.current++;
+setOpen(false);
+~~~
+The first added line reads the previous binding and session; the second remembers the current pair. The third preserves an opened panel only while the same binding has not yet resolved its first session. A different requested binding or a later resolved-session change still reaches the epoch bump and full view/form reset, including focus and retention count. The hook exposes its existing requested key; no server API or translated label changes.
+
+Concrete controlled row: task 1, exploration 1, segment 0 was paused through the real task API. Its first controls response was held until /context had opened. Releasing that real response previously closed the trigger and made the normal click time out after 15 seconds (Go exit 1); the byte-identical browser oracle now retains the open trigger and closes normally (exit 0), with zero provider calls. Task pause is distinct from the chat gate's paused field.
+
+| Local check on frozen fixed source | Observed result |
+| --- | --- |
+| Existing frontend tests | 65 passed, 0 failures/skips |
+| Fresh static frontend build | TypeScript and 31 pages completed; verified native exit 0 |
+| Unchanged independent delayed-first-response oracle | 1 Go test passed, 0 failures/skips; zero provider calls |
+| Canonical context browser fixture | All 12 EN/KO/zh-Hans × 1440/390 × standalone/task cases plus hydration and requested-binding guards passed (14 browser steps; 1 Go test, 0 failures/skips) |
+
+The added guard uses the real first backend response, then synthetic route state for a later resolved-session change and a held old context response. Every replacement response stays held until the stale-content assertion, preventing a fresh result from hiding a leak. Nondefault focus and retention 7 reset to empty focus and default 2. Counterexample: a genuine requested binding or later resolved session must still reset; late results must not restore old context. A second real task-query switch (task 7 to 8 in the full run) observed the new controls URL while its response was held, retained the identical connected inspector trigger and document, reset focus/retention and rejected the late old context before replacement data could mask it. This proves a mounted requested-binding change rather than a remount. Late error/compaction-success branches remain source-reviewed rather than separately exercised. The synthetic identity guards prove client handling, not server exploration replacement. Other context cases use the controlled loopback provider; no paid/external provider was called.
+
+Initial shell-wrapper attempts stopped on environment/capture setup; final build/test exits are recorded separately with warnings retained and no source/assertion workaround. Prior planner/shutdown changes are preserved. Paired documentation records these local results; independent final review and all seven hosted checks on the next committed head remain required. PR readiness is not maintainer approval, merge or a public release.
+
+## Log writer shutdown ownership (2026-10-17)
+
+The server keeps logs in memory and persists them through an asynchronous database writer. Canceling the server context previously did not join that writer: an insert using a background context could remain active while `Manager.Close` closed its pool. The latest backend run on PR #40 head `14b5403` exposed this in the unchanged occupied-port shutdown test.
+
+Abridged flow across the writer and manager:
+```go
+// Before: writer, then manager shutdown
+pg.InsertLog(level, tag, text) // background context
+return m.pg.Close()           // no writer join
+// After: writer, then manager shutdown
+pg.InsertLogContext(writeCtx, level, tag, text)
+logSink.StopDB(m.pg)
+return m.pg.Close()
+```
+The first new line makes the actual insert cancelable; the initial history restore uses the same context. The second detaches only this exact pool, cancels outstanding SQL and waits for writer completion outside the sink lock. Every same-owner stop shares that completion; another manager's pool cannot stop it. Only then does the third line close the pool. Existing context-free DB methods delegate to the same SQL; ring, stderr and SSE delivery remain available, and the enqueue channel is never closed.
+
+One observed row: backend run [39028154916](https://github.com/cskwork/scopeweaver/actions/runs/39028154916), job `117383132313`, failed `TestMainServeFailureRunsShutdown` at **2026-10-17 11:18:45 UTC**. The expected occupied-port bind failure was followed by shutdown and `[logsink] db write: sql: database is closed`. Independently, a real PostgreSQL table lock reproduced `Manager.Close` returning with its writer still blocked on unchanged `14b5403` (Go exit 1). The exact same fixture now passes while the lock remains held, before pool close; no diagnostic is filtered.
+
+| Original local R19 check | Observed result |
+| --- | --- |
+| Unchanged independent blocked-insert regression | 1 passed, 0 failures/skips; baseline behavioral RED retained |
+| Genuine SQL-rejection guard | 1 passed, 0 failures/skips; SQLSTATE `23514` visible, rejected row absent and later valid row persisted |
+| Frozen `TestStopDB*` fixtures | 6 passed, 0 failures/skips: no binding, blocked insert, foreign pool, canceled context, concurrent stops and stderr continuity |
+| Unchanged occupied-port shutdown test | 1 run plus 20 repeated runs passed; expected child failure retained, parent Go exit 0 |
+| `go build ./...`, `go vet ./...` | Both exit 0 |
+
+Counterexample: a genuine live-context SQL rejection must still be reported; cancellation/join does not turn it into a successful insert. This remains best-effort logging, without a new flush guarantee for queued lines. The concurrent fixture checks aggregate completion; per-waiter shared-join behavior is also verified in source review, rather than claimed as a separate runtime oracle. All database runs use disposable test databases; independent fixtures now use owned schemas in the supplied disposable database and need no CREATE DATABASE privilege. Production privileges, HTTP/schema contracts and existing planner tests are unchanged. These are local results, not a full native-server or release claim: the inherited Windows symlink privilege limitation remains, and all seven hosted checks must pass on the next committed candidate.
+
+## Terminal goal completion (2026-10-17)
+
+These are local R17 candidate results; final independent source review and the exact-candidate hosted gates are separate. The R17 shared correction keeps a completed proof turn on the normal SDK path, then ends the planner locally before another upstream request. Normally `prove_goal` links a confirmed fact/finding to its goal and marks that goal met; only proof of every goal sets `GoalMet`. Previously `Plan` waited for `captureRun` to finish before returning that flag to the engine, so the engine could not complete while the session waited on another model response.
+
+Abridged control flow (`...` is the unchanged activity callback):
+```go
+// Before
+_, _, err = captureRun(ctx, opts, input, ...)
+return tsx.GoalMet, tsx.Reason, err
+// After
+installTerminalProofGateOn(&opts, tsx)
+_, _, err = captureRun(ctx, opts, input, ...)
+return tsx.GoalMet, tsx.Reason, err
+```
+The first old line waits for the whole session; the second exposes its goal result only afterward. The added line installs the next-request boundary before capture starts. It lets the current response, actual tool result, late usage and transcript finish, then supplies a content-free local `end_turn` with zero upstream usage and skips unnecessary post-proof `Compactor.Pre`. It preserves the selected compactor, optional `ContextView`, normal pre-proof/recovery behavior and existing provider/tool wrappers. Original `ToolUseID` and successful/failed response qualification prevent a delayed handler from attributing an old failed proof to a later successful response. The newest proof origin is retained with compare-and-swap; an older or unknown origin cannot erase a newer valid proof. Failure bookkeeping runs before yielding an error, including when its consumer stops immediately.
+
+Concrete lab row: in the **standalone CLI R11 candidate**, not an original-production incident, finding node `5` proved goal `2` at **2026-10-17 18:36:24+09:00**. Model output was still active when the unchanged 420-second harness paused at **18:37:48+09:00**, 84 seconds later. That run had exactly one GET, one intent and one finding. The receipt is `scopeweaver-cli/dist/pi-glm-flash-fix-20261017/r11-flash-high-digest.txt`; it demonstrates the completion wait, not an underlying provider-latency cause. Counterexample: partial/rejected proof must continue normally; a failed proof response retains its real error/recovery path and cannot qualify local completion.
+
+Original-source proof uses controlled providers and disposable PostgreSQL, with no paid inference:
+
+| Local candidate check | Observed result |
+| --- | --- |
+| Complete `agent` package, R17 with corrected owned-fact fixture | 567 tests/subtests passed, 0 failures, 0 skips; includes streaming/nonstreaming, partial/rejected proof, parent cancellation, error/recovery, compaction/view and delayed-origin cases |
+| `TestWireTools`, stock-runtime S7 and actual-engine S18 | 28 passed, 0 failures, 0 skips; S18 persists done after one real provider call, authentic proof/terminal receipts and exact input/output/cache-read/cache-write usage **11/7/3/2**, also in the raw transcript |
+| Real pause/provider-error guards in S18 | Honest error/cause receipts retain emitted usage **11/0/3/0** for user pause and **11/7/3/2** for provider failure; post-proof pause-versus-task-completion status precedence is observed without a new policy assertion |
+| Complete `locale`, build and vet | 19 tests passed, 0 failures, 0 skips; `go build ./...` and `go vet ./...` exit 0 |
+
+The saved original S18 baseline failed because it attempted provider call 2 and had no terminal result/completion; its cancellation/provider-error receipt guards passed. The independent immutable R14 regression also failed with calls=2 instead of 3 when an old failed handler borrowed a later response's identity; the candidate retains the three-call regression. The reviewer then reproduced the converse order on the original R16 candidate: an old failed response-1 handler finished after a valid response-2 proof and erased its origin, causing an unnecessary third request. The unchanged actual-session overlay failed with calls=3 before R17 and now passes with calls=2/origin=2 and one authentic new proof result. Both delayed-handler orderings pass in the [boundary regressions](../agent/terminal_boundary_test.go); the [actual engine regression](../server/engine_terminal_proof_test.go) separately preserves completion/receipt/usage checks. The first integrated agent run failed only because a new fixture expected `CreateExploration` to create an origin fact. R16 seeds its own confirmed fact; all assertions and production code are unchanged by that fixture correction. Earlier failing receipts remain retained.
+
+S18 now reuses S7's owned-schema helper inside the supplied disposable database, closing stores before dropping its own schema; a database-owning NOCREATEDB test role is sufficient and production privileges are unchanged. The unchanged `TestChatBranchCopyRejectsDestinationSymlink` still fails locally at `server/chat_history_test.go:270` because Windows denies symlink creation. Full native-server success and the seven exact-candidate hosted checks are not claimed; CI/frontend/browser delivery remains pending. Root owns separate race/live acceptance; this section reports only these original local checks.
+
+## Planner/tool contract and stored-stock compatibility (2026-10-17)
+
+Local Windows results for `fix/glm-agent-contracts`, based on `dev` commit `d7365ec`. The planner's `parent_ids` guidance now matches the existing fact/finding-only handler, and batched `add_intent` metadata describes its fields and required `summary`. Planner/worker guidance preserves fresh validation and retests, requires evidence for every goal condition, and ends rounds only after successful dispatch or confirmed final-goal proof. EN/KO/zh-Hans resources are paired.
+
+Exact previous stock planner/worker prompts and `add_intent` schemas resolve to corrected runtime defaults. User edits, bindings, enabled flags, stored rows and prompt history remain unchanged; there is no production database migration or handler-semantic change. See [contract regressions](../agent/planner_contract_test.go), [stock compatibility regressions](../agent/legacy_stock_compat_test.go), and [HTTP/runtime PostgreSQL proof](../server/tools_stock_schema_test.go).
+
+Tests-first proof compiled and produced **8 top-level agent assertion failures** and **9 S7 stock-schema subcase failures** on the baseline. The temporary unchanged-tail extraction and pass-through resolver used only to compile the tests were removed before applying the fix. Candidate results:
+
+| Local check | Observed result |
+| --- | --- |
+| Complete `agent` package with disposable PostgreSQL | 549 tests/subtests passed, 0 failures, 0 skips |
+| Complete `locale` package | 19 passed, 0 failures, 0 skips |
+| Focused server locale/tool/provenance checks | 11 passed, 0 failures, 0 skips; 1,985 production keys retain raw three-language completeness checks |
+| `TestExplorationDirectSourceReadView` | Passed with disposable PostgreSQL |
+| `TestStockMetadataRuntimePostgres` plus `TestWireTools`, `-count=2` | 48 tests/subtests passed, 0 failures, 0 skips; actual loopback HTTP handlers, runtime resolution and stored-row/history readback |
+| Saved public-tool scenarios | S11: all 10 main-agent/planner callback cases passed; S12: historical lineage, source provenance and unrelated/indirect parent rejection passed; S3: invalid-kind/blank-summary rejection, partial errors and omitted/empty/null origin linkage passed |
+| `go build ./...`, `go vet ./...`, diff whitespace | Passed |
+
+`TestStockMetadataRuntimePostgres` and `TestEngineTerminalProofPersistsAuthenticReceipt` require an explicit disposable `ARTEX_TEST_DSN` selecting `scopeweaver_test_*`. The database-owning test role may have **NOCREATEDB**, matching `make test-db`. Each fixture creates its own `stock_*` schema and sets every pooled connection's `search_path` to only that schema, preserving the selected database and other connection options. Tests close stores before dropping only their owned schema with `CASCADE`; cleanup errors are reported, but schema deletion does not itself detect idle leaked connections. `TestStockFixtureIsolationAndCleanup` checks multiple pooled connections, parent-table invisibility/preservation and schema removal. Reproduce isolation with `go test ./server -run '^Test(WireTools|StockMetadataRuntimePostgres|StockFixtureIsolationAndCleanup|EngineTerminalProofPersistsAuthenticReceipt)$' -count=2`. Production database privileges and schema are unchanged. This fixture repair supersedes the earlier child-database/CREATE DATABASE requirement.
+
+The first S3 harness attempt failed while seeding a hint with invalid state `open`; the fixture was corrected to the existing `active` state, with no product/assertion change, before the passing rerun. The final S7 setup also passed twice after other tests populated the parent database. These checks establish contract and compatibility behavior, not the cause of the earlier live Flash duplicate/timeout. Full `go test ./...`, frontend/browser checks and the seven required exact-candidate CI jobs remain pending for this branch; no merge or release is claimed.
 
 ## Shared runtime fixes from standalone CLI verification (2026-10-17)
 

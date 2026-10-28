@@ -1,6 +1,6 @@
 # 요청 mock
 
-[English](../../../../../skills/playwright-cli/references/request-mocking.md)
+[English](../../../../../skills/playwright-cli/references/request-mocking.md) · 한국어 · [简体中文](../../../../zh-Hans/skills/playwright-cli/references/request-mocking.md) · [繁體中文](../../../../zh-Hant/skills/playwright-cli/references/request-mocking.md) · [日本語](../../../../ja/skills/playwright-cli/references/request-mocking.md) · [Español](../../../../es/skills/playwright-cli/references/request-mocking.md)
 
 네트워크 요청을 가로채 mock 응답, 수정, 차단을 수행합니다.
 
